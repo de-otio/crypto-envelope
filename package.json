@@ -62,14 +62,7 @@
       }
     }
   },
-  "files": [
-    "dist/",
-    "dist-cjs/",
-    "LICENSE",
-    "README.md",
-    "SECURITY.md",
-    "CHANGELOG.md"
-  ],
+  "files": ["dist/", "dist-cjs/", "LICENSE", "README.md", "SECURITY.md", "CHANGELOG.md"],
   "scripts": {
     "build": "tsc && tsc -p tsconfig.cjs.json",
     "test": "vitest run",
