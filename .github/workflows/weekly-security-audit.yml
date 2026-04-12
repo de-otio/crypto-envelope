@@ -1,0 +1,103 @@
+# =============================================================================
+# Weekly Deep Security Audit (Full Codebase)
+# Runs Claude Code with Opus against the entire repo on a schedule
+# Creates a GitHub Issue with findings
+# =============================================================================
+# This goes beyond PR-level diffs — it audits the full codebase for:
+#   - Latent vulnerabilities in existing code
+#   - Privilege escalation paths
+#   - Cryptographic weaknesses
+#   - Supply chain / dependency issues
+#   - Auth bypass, injection, SSRF, race conditions
+# =============================================================================
+
+name: "🛡️ Weekly Deep Security Audit"
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"  # Every Monday at 07:00 UTC (09:00 Berlin)
+  workflow_dispatch:       # Manual trigger anytime
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  deep-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run deep security audit
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          claude --model claude-opus-4-6 --max-turns 15 --print <<'PROMPT' > audit-report.md
+          You are a senior application security engineer performing a comprehensive
+          security audit of this repository.
+
+          ## Audit Scope
+          1. **Authentication & Authorization**: Session handling, token validation,
+             privilege escalation, IDOR, broken access control
+          2. **Injection**: SQL injection, NoSQL injection, command injection, SSRF,
+             path traversal, template injection
+          3. **Cryptography**: Key management, encryption implementation, random number
+             generation, secret handling
+          4. **Data Exposure**: PII leaks, verbose errors, debug endpoints, hardcoded
+             secrets, insecure logging
+          5. **API Security**: Rate limiting, input validation, mass assignment,
+             excessive data exposure
+          6. **Dependency Risk**: Known CVEs in dependencies, outdated packages,
+             supply chain concerns
+          7. **Infrastructure**: AWS IAM misconfigurations, overly permissive policies,
+             exposed services, insecure defaults
+
+          ## Instructions
+          - Read the project structure first, then focus on the most security-critical
+            files (auth, API routes, data handling, infra config)
+          - For each finding, provide: severity (Critical/High/Medium/Low),
+            file + line number, description, proof-of-concept or attack scenario,
+            and a concrete fix
+          - End with a summary table of all findings sorted by severity
+          - If you find nothing critical, say so — don't invent issues
+
+          ## Output Format
+          Output a clean Markdown report with:
+          # Security Audit Report — $(date +%Y-%m-%d)
+          ## Executive Summary
+          ## Critical Findings
+          ## High Findings
+          ## Medium Findings
+          ## Low Findings
+          ## Dependency Review
+          ## Summary Table
+          PROMPT
+
+      - name: Create audit issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('audit-report.md', 'utf8');
+            const today = new Date().toISOString().split('T')[0];
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🛡️ Weekly Security Audit — ${today}`,
+              body: report,
+              labels: ['security', 'audit', 'automated']
+            });

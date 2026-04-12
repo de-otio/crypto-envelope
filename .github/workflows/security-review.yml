@@ -1,0 +1,45 @@
+# =============================================================================
+# AI-Powered Security Review on Every PR
+# Uses Anthropic's official claude-code-security-review action
+# Docs: https://github.com/anthropics/claude-code-security-review
+# =============================================================================
+# SETUP:
+#   1. Add ANTHROPIC_API_KEY to repo Settings → Secrets → Actions
+#   2. Drop this file into .github/workflows/
+#   3. That's it — every PR now gets a security review comment
+# =============================================================================
+
+name: "🔒 AI Security Review"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Prevent parallel reviews on the same PR
+concurrency:
+  group: security-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  security-review:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better context
+
+      - name: Run Claude Security Review
+        uses: anthropics/claude-code-security-review@main
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: "claude-opus-4-6"
+          # Optional: set to true to re-scan every commit (more thorough but noisier)
+          direct_push: false

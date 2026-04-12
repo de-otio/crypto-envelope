@@ -1,0 +1,57 @@
+# =============================================================================
+# Interactive Claude Code Agent
+# Responds to @claude mentions in PRs and issues
+# Can answer security questions, fix vulnerabilities, and create fix PRs
+# =============================================================================
+# Usage in any PR or Issue comment:
+#   @claude is this endpoint vulnerable to SSRF?
+#   @claude fix the auth bypass in src/auth/login.ts
+#   @claude review this PR for security issues
+# =============================================================================
+
+name: "🤖 Claude Code Agent"
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+# Prevent parallel runs on the same PR/issue
+concurrency:
+  group: claude-agent-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write       # To push fix branches
+  pull-requests: write  # To create/comment on PRs
+  issues: write         # To comment on issues
+  id-token: write       # For OIDC auth if using Bedrock/Vertex
+
+jobs:
+  claude:
+    # Only trigger on @claude mentions
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--model claude-opus-4-6 --max-turns 10"
+          # Restrict which users can trigger (add your GitHub usernames)
+          # allowed_non_write_users: ""
