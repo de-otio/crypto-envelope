@@ -88,7 +88,7 @@ jobs:
 
           ## Output Format
           Output a clean Markdown report with:
-          # Security Audit Report — $(date +%Y-%m-%d)
+          # Security Audit Report
           ## Executive Summary
           ## Critical Findings
           ## High Findings
@@ -98,8 +98,20 @@ jobs:
           ## Summary Table
           PROMPT
 
+      - name: Validate audit report
+        run: |
+          if [ ! -s audit-report.md ]; then
+            echo "::error::audit-report.md is empty — claude likely failed to produce output."
+            exit 1
+          fi
+          if ! grep -q "^## " audit-report.md; then
+            echo "::error::audit-report.md contains no section headers — output may be truncated or an error message."
+            cat audit-report.md
+            exit 1
+          fi
+
       - name: Create audit issue
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const fs = require('fs');

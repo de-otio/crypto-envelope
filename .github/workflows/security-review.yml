@@ -49,7 +49,7 @@ jobs:
           fetch-depth: 0  # Full history for better context
 
       - name: Run Claude Security Review
-        uses: anthropics/claude-code-security-review@main
+        uses: anthropics/claude-code-security-review@0c6a49f1fa56a1d472575da86a94dbc1edb78eda # main
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           model: "claude-opus-4-6"
