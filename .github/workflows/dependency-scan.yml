@@ -72,6 +72,15 @@ jobs:
           pip-audit -r requirements.txt 2>/dev/null >> dep-report.md || echo "No vulnerabilities found" >> dep-report.md
 
       # ── AI triage of findings ─────────────────────────────────
+      - name: Check API key is configured
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::ANTHROPIC_API_KEY secret is not set. Add it under repo Settings → Secrets → Actions."
+            exit 1
+          fi
+
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code
 
