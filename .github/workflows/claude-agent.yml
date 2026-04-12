@@ -44,26 +44,24 @@ jobs:
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
-      - name: Check API key is configured
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::error::ANTHROPIC_API_KEY secret is not set. Add it under repo Settings → Secrets → Actions."
-            exit 1
-          fi
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::284064533851:role/github-ci-bedrock
+          aws-region: eu-central-1
+
       - name: Run Claude Code
         uses: anthropics/claude-code-action@c7c8889b30499b4e46f4c32b892e43cd364bc2fe # v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: "--model claude-opus-4-6 --max-turns 10"
-          # Restrict which users can trigger (add your GitHub usernames)
-          # allowed_non_write_users: ""
+          use_bedrock: true
+          aws_region: eu-central-1
+          claude_args: "--model eu.anthropic.claude-opus-4-6-20251101-v1:0 --max-turns 10"
+          allowed_non_write_users: ""

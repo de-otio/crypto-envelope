@@ -21,6 +21,7 @@ on:
 permissions:
   contents: read
   issues: write
+  id-token: write  # Required for OIDC auth to AWS Bedrock
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -31,19 +32,16 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Check API key is configured
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::error::ANTHROPIC_API_KEY secret is not set. Add it under repo Settings → Secrets → Actions."
-            exit 1
-          fi
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::284064533851:role/github-ci-bedrock
+          aws-region: eu-central-1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -55,9 +53,10 @@ jobs:
 
       - name: Run deep security audit
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_USE_BEDROCK: "1"
+          AWS_REGION: eu-central-1
         run: |
-          claude --model claude-opus-4-6 --max-turns 15 --print <<'PROMPT' > audit-report.md
+          claude --model eu.anthropic.claude-opus-4-6-20251101-v1:0 --max-turns 15 --print <<'PROMPT' > audit-report.md
           You are a senior application security engineer performing a comprehensive
           security audit of this repository.
 

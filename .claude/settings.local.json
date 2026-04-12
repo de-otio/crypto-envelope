@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh run:*)",
+      "Bash(npm install:*)",
+      "Bash(npm audit:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Bash(npm run:*)",
+      "Bash(git rm:*)",
+      "Bash(gh api:*)",
+      "Bash(xargs -I{} gh api repos/actions/github-script/git/tags/{} --jq '.object.sha')",
+      "Bash(aws --profile dot-master controltower list-enabled-baselines --output json)",
+      "Bash(aws --profile dot-master controltower list-landing-zones --output json)",
+      "Bash(aws --profile dot-master servicecatalog provision-product --product-id prod-54rey72vmzmai --provisioning-artifact-id pa-ombitnki7fl2w --path-id lpv3-2xsjyn5avbjra --provisioned-product-name AI-ML --provisioning-parameters Key=AccountName,Value=AI-ML Key=AccountEmail,Value=richard.myers+ai@de-otio.org Key=SSOUserEmail,Value=richard.myers@de-otio.org Key=SSOUserFirstName,Value=Richard Key=SSOUserLastName,Value=Myers 'Key=ManagedOrganizationalUnit,Value=prod \\(ou-7zlx-m97kw477\\)' --output json)",
+      "Bash(aws --profile dot-master servicecatalog describe-provisioned-product --name AI-ML --output json)",
+      "Bash(aws --profile dot-master servicecatalog describe-record --id rec-jkof7il7fcp72 --output json)",
+      "Bash(aws --profile dot-master controltower list-landing-zone-operations --output json)",
+      "Bash(aws --profile dot-master controltower get-baseline --baseline-identifier arn:aws:controltower:eu-central-1::baseline/17BSJV3IGJ2QSGA2 --output json)",
+      "Bash(aws --profile dot-master controltower get-enabled-baseline --enabled-baseline-identifier arn:aws:controltower:eu-central-1:130128480380:enabledbaseline/XAE05GHBFXI5OQFV2 --output json)",
+      "Bash(aws --profile dot-master cloudformation describe-stacks --stack-name AI-ML --output json)",
+      "Bash(aws --profile dot-master cloudtrail lookup-events --lookup-attributes AttributeKey=EventName,AttributeValue=EnableBaseline --start-time 2026-04-12T22:00:00Z --output json)",
+      "Bash(python3 -c ':*)",
+      "Bash(aws --profile dot-master controltower get-baseline-operation --operation-identifier 82787ac4-6bf7-4aad-906a-f53aec04b00b --output json)",
+      "Bash(aws --profile dot-master servicecatalog describe-provisioned-product --id pp-7vzcqv5ncgen6 --output json)",
+      "Bash(aws --profile dot-master servicecatalog describe-provisioned-product --id pp-7vzcqv5ncgen6 --query 'ProvisionedProductDetail.Status' --output text)",
+      "Bash(npm test:*)"
+    ]
+  }
+}
