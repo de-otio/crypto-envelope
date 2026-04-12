@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Scaffolding
 
+- Commit signing enabled (SSH signing via ed25519 key; verified on GitHub)
 - Initial repository structure
 - TypeScript dual ESM/CJS build configuration
 - CI, security review, dependency scan, secrets scan workflows
