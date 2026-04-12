@@ -32,6 +32,9 @@ permissions:
   issues: write         # To comment on issues
   id-token: write       # For OIDC auth if using Bedrock/Vertex
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   claude:
     # Only trigger on @claude mentions
