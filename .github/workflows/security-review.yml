@@ -1,7 +1,7 @@
 # =============================================================================
 # AI-Powered Security Review on Every PR
-# Uses Anthropic's official claude-code-security-review action via AWS Bedrock
-# Docs: https://github.com/anthropics/claude-code-security-review
+# Runs Claude Code via AWS Bedrock against the PR diff
+# Blocks merge on Critical or High findings
 # =============================================================================
 
 name: "🔒 AI Security Review"
@@ -34,7 +34,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for better context
+          fetch-depth: 0  # Full history for diff
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -42,11 +42,78 @@ jobs:
           role-to-assume: arn:aws:iam::284064533851:role/github-ci-bedrock
           aws-region: eu-central-1
 
-      - name: Run Claude Security Review
-        uses: anthropics/claude-code-security-review@0c6a49f1fa56a1d472575da86a94dbc1edb78eda # main
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          use_bedrock: true
-          aws_region: eu-central-1
-          model: "eu.anthropic.claude-opus-4-6-v1"
-          # Optional: set to true to re-scan every commit (more thorough but noisier)
-          direct_push: false
+          node-version: "20"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Generate PR diff
+        run: |
+          git diff origin/${{ github.base_ref }}...HEAD > pr.diff
+          echo "Diff: $(wc -l < pr.diff) lines across $(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l) files"
+
+      - name: Run security review
+        env:
+          CLAUDE_CODE_USE_BEDROCK: "1"
+          AWS_REGION: eu-central-1
+        run: |
+          claude --model eu.anthropic.claude-opus-4-6-v1 --max-turns 10 --print <<'PROMPT' > review-report.md
+          You are a senior application security engineer reviewing a pull request to a
+          cryptographic library. Your review must block unsafe changes from merging.
+
+          Steps:
+          1. Read CLAUDE.md — it contains the review priorities and severity scale.
+          2. Read pr.diff — the full PR diff to review.
+          3. For each finding, state:
+             - Severity (Critical / High / Medium / Low per CLAUDE.md scale)
+             - File and line number
+             - What the issue is, in plain terms
+             - The mistake class (cite the priority number from CLAUDE.md)
+             - Concrete fix
+          4. Output a summary table of all findings.
+          5. On the final line, output exactly one of:
+             VERDICT: BLOCK
+             VERDICT: PASS
+
+          Use VERDICT: BLOCK if there are any Critical or High findings.
+          Use VERDICT: PASS only if there are no Critical or High findings.
+          Do not invent issues. If there is nothing to flag, say so and output VERDICT: PASS.
+          PROMPT
+
+      - name: Enforce verdict
+        run: |
+          if [ ! -s review-report.md ]; then
+            echo "::error::review-report.md is empty — claude failed to produce output"
+            exit 1
+          fi
+
+          if grep -q "^VERDICT: BLOCK$" review-report.md; then
+            echo "::error::Security review found Critical or High findings — merge blocked. See PR comment for details."
+            exit 1
+          elif grep -q "^VERDICT: PASS$" review-report.md; then
+            echo "Security review passed — no Critical or High findings."
+          else
+            echo "::error::No VERDICT line found in review output — treating as failure."
+            cat review-report.md
+            exit 1
+          fi
+
+      - name: Post review comment
+        if: always()
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('review-report.md')) return;
+            const report = fs.readFileSync('review-report.md', 'utf8').trim();
+            if (!report) return;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## \u{1F512} Security Review\n\n${report}`
+            });
