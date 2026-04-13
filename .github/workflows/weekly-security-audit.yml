@@ -56,7 +56,8 @@ jobs:
           CLAUDE_CODE_USE_BEDROCK: "1"
           AWS_REGION: eu-central-1
         run: |
-          claude --model eu.anthropic.claude-opus-4-6-v1 --max-turns 15 --print <<'PROMPT' > audit-report.md 2>claude-stderr.log; EXIT=$?; [ -s claude-stderr.log ] && { echo "=== claude stderr ==="; cat claude-stderr.log; }; exit $EXIT
+          set +e
+          claude --model eu.anthropic.claude-opus-4-6-v1 --max-turns 15 --print <<'PROMPT' 2>claude-stderr.log | tee audit-report.md
           You are a senior application security engineer performing a comprehensive
           security audit of this repository.
 
@@ -96,6 +97,13 @@ jobs:
           ## Dependency Review
           ## Summary Table
           PROMPT
+          CLAUDE_EXIT=${PIPESTATUS[0]}
+          if [ -s claude-stderr.log ]; then
+            echo "=== claude stderr ==="
+            cat claude-stderr.log
+          fi
+          echo "claude exit code: $CLAUDE_EXIT"
+          exit $CLAUDE_EXIT
 
       - name: Validate audit report
         run: |
