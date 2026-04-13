@@ -47,6 +47,6 @@ jobs:
         with:
           use_bedrock: true
           aws_region: eu-central-1
-          model: "eu.anthropic.claude-opus-4-6-20251101-v1:0"
+          model: "eu.anthropic.claude-opus-4-6-v1"
           # Optional: set to true to re-scan every commit (more thorough but noisier)
           direct_push: false
