@@ -25,7 +25,20 @@ jobs:
       - run: npm run test:all
       # `prepublishOnly` in package.json re-runs build + tests, so we
       # don't need a separate build step here. Uses Trusted Publishing
-      # via OIDC. Configure the binding at:
-      # https://www.npmjs.com/package/@de-otio/crypto-envelope/access
-      # so no NPM_TOKEN is needed.
-      - run: npm publish --provenance --access public
+      # via OIDC; no NPM_TOKEN is needed.
+      #
+      # Pick the dist-tag from the version suffix so a pre-release never
+      # accidentally becomes @latest: `-alpha` → alpha, `-beta` → beta,
+      # `-rc` → rc, other pre-releases → next, release → latest.
+      - name: Publish to npm
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          case "$VERSION" in
+            *-alpha*) TAG=alpha ;;
+            *-beta*)  TAG=beta ;;
+            *-rc*)    TAG=rc ;;
+            *-*)      TAG=next ;;
+            *)        TAG=latest ;;
+          esac
+          echo "Publishing $VERSION to dist-tag $TAG"
+          npm publish --provenance --access public --tag "$TAG"
