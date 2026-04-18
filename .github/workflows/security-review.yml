@@ -60,7 +60,7 @@ jobs:
           CLAUDE_CODE_USE_BEDROCK: "1"
           AWS_REGION: eu-central-1
         run: |
-          claude --model eu.anthropic.claude-opus-4-6-v1 --max-turns 10 --print <<'PROMPT' > review-report.md
+          claude --model arn:aws:bedrock:eu-central-1:284064533851:application-inference-profile/lbg6eglhjie4 --max-turns 10 --print <<'PROMPT' > review-report.md
           You are a senior application security engineer reviewing a pull request to a
           cryptographic library. Your review must block unsafe changes from merging.
 

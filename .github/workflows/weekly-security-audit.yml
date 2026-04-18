@@ -57,7 +57,7 @@ jobs:
           AWS_REGION: eu-central-1
         run: |
           set +e
-          claude --model eu.anthropic.claude-opus-4-6-v1 --max-turns 15 --print <<'PROMPT' 2>claude-stderr.log | tee audit-report.md
+          claude --model arn:aws:bedrock:eu-central-1:284064533851:application-inference-profile/lbg6eglhjie4 --max-turns 15 --print <<'PROMPT' 2>claude-stderr.log | tee audit-report.md
           You are a senior application security engineer performing a comprehensive
           security audit of this repository.
 
