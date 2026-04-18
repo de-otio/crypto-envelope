@@ -85,5 +85,8 @@
     "@vitest/coverage-v8": "^4.1.4",
     "typescript": "~5.9.0",
     "vitest": "^4.1.4"
+  },
+  "dependencies": {
+    "sodium-native": "^5.1.0"
   }
 }
