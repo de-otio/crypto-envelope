@@ -1,7 +1,7 @@
 {
   "name": "@de-otio/crypto-envelope",
-  "version": "0.0.0",
-  "description": "Opinionated authenticated-encryption envelopes for TypeScript. AEAD + AAD + key commitment + canonical JSON + tiered key management. Makes best-practice cryptography accessible to application developers while avoiding the common implementation mistakes.",
+  "version": "0.1.0-alpha.1",
+  "description": "Opinionated authenticated-encryption envelopes for TypeScript. XChaCha20-Poly1305 AEAD + AAD binding + HMAC-SHA256 key commitment + RFC 8785 canonical JSON + Argon2id + SecureBuffer. Safe defaults that can't be turned off.",
   "license": "MIT",
   "author": {
     "name": "De Otio",

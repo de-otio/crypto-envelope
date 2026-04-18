@@ -2,13 +2,13 @@
 
 **Opinionated authenticated-encryption envelopes for TypeScript.** Makes best-practice cryptography accessible to application developers while preventing common implementation mistakes (nonce reuse, skipped AAD, weak KDFs, silent decryption failure, …).
 
-> **Status: pre-v0.1, under construction.** This repository is being populated from [chaoskb](https://github.com/de-otio/chaoskb)'s internal crypto module. The design is specified in the [skybber analysis docs](https://github.com/de-otio/skybber/tree/main/analysis/crypto-envelope-package) (private). A v0.1 pre-release is planned once the extraction is complete and consumed internally by [chaoskb](https://github.com/de-otio/chaoskb) and [trellis](https://github.com/de-otio/trellis).
+> **Status: pre-release (`0.1.0-alpha`).** The envelope layer is complete and internally consumed by [chaoskb](https://github.com/de-otio/chaoskb) and [trellis](https://github.com/de-otio/trellis). The `@latest` tag is reserved until both of those ship production releases on this package; install the alpha explicitly. The wire format is considered mutable between `0.x` minors until then.
 
 ## What it is
 
-An **envelope layer** above cryptographic primitives (`@noble/*`, libsodium) and below application protocols (Signal, TLS, JOSE). Takes a plaintext payload + a key tier, produces a versioned, authenticated envelope with defensible defaults. Reversibly.
+An **envelope layer** above cryptographic primitives (`@noble/*`, libsodium) and below application protocols (Signal, TLS, JOSE). Takes a plaintext payload + a master key, produces a versioned, authenticated envelope with defensible defaults. Reversibly.
 
-The package is small and opinionated. It does one thing: encrypt and decrypt self-describing blobs, with tiered key management for the recovery-UX layer.
+The package is small and opinionated. It does one thing: encrypt and decrypt self-describing blobs. Tiered key management (SSH-wrap, passphrase-derived recovery keys, OS-keychain integration, TOFU pinning) is a separate concern that will land as [`@de-otio/keyring`](https://github.com/de-otio/keyring) — unpublished at the time of writing.
 
 ## What it isn't
 
@@ -16,49 +16,62 @@ The package is small and opinionated. It does one thing: encrypt and decrypt sel
 - Not a protocol library — use `libsignal`, `mls`, or `age` for full sessions, groups, or file encryption.
 - Not a KMS wrapper — use `aws-encryption-sdk-js` if you need KMS-backed master keys.
 - Not a JWT/JWE token library — use [`jose`](https://github.com/panva/jose).
+- Not a key-management framework — use `@de-otio/keyring` (forthcoming) if you want tiered SSH / passphrase unlock, recovery UX, or OS keychain integration.
 
 ## Install
 
 ```bash
-npm install @de-otio/crypto-envelope
+npm install @de-otio/crypto-envelope@alpha
 ```
 
-## Quick use (sketch — API shape, not final)
+Node 20+ required. The package pulls in `sodium-native` (for `mlock`'d secure memory), which builds prebuilt binaries on install — no extra toolchain or `playwright`-style post-install step.
+
+## Quick start
 
 ```typescript
 import { EnvelopeClient } from '@de-otio/crypto-envelope';
+import { randomBytes } from 'node:crypto';
 
-const client = new EnvelopeClient({ masterKey }); // 32-byte Uint8Array
-const blob = client.encrypt({ type: 'note', body: 'hello' });
-const back = client.decrypt(blob); // → { type: 'note', body: 'hello' }
+using client = new EnvelopeClient({ masterKey: randomBytes(32) });
+
+const wire = client.encrypt({ type: 'note', body: 'hello' });
+const back = client.decrypt(wire);
+// → { type: 'note', body: 'hello' }
 ```
 
-For tier management (SSH-wrap default; passphrase for journalist/activist tier):
+`wire` is a `Uint8Array` in the compact v2 (CBOR) wire format by default. Opt into v1 JSON with `{ format: 'v1' }`; both round-trip losslessly via `upgradeToV2` / `downgradeToV1`, and `decrypt()` auto-detects.
+
+For finer control, the low-level functions are exported too:
 
 ```typescript
-import { KeyRing } from '@de-otio/crypto-envelope';
+import {
+  encryptV1,
+  decryptV1,
+  deriveContentKey,
+  deriveCommitKey,
+} from '@de-otio/crypto-envelope';
 
-const ring = await KeyRing.init({ tier: 'standard', sshPublicKey });
-await ring.upgradeTo('maximum', { passphrase });
+const cek = deriveContentKey(masterKey);
+const commitKey = deriveCommitKey(masterKey);
+const envelope = encryptV1({ payload: { x: 1 }, cek, commitKey, kid: 'default' });
+const recovered = decryptV1(envelope, cek, commitKey);
 ```
-
-See [`doc/`](./doc/) for the full design (coming with v0.1).
 
 ## What this package protects against
 
-Design justification for each feature is traceable to a specific class of application-level crypto mistake. Partial list (non-exhaustive, to be expanded):
+Design justification for each feature traces back to a specific class of application-level crypto mistake:
 
-- **Nonce reuse** → 192-bit random nonces via XChaCha20-Poly1305; nonce never user-controllable.
-- **Skipped AAD / version downgrade** → AAD is mandatory and binds version + algorithm + blob ID.
-- **Multi-key attacks** → dedicated commitment key via HKDF; commitment HMAC binds to blob ID.
-- **Silent serialization drift** → RFC 8785 canonical JSON + verify-after-encrypt, both mandatory.
-- **Weak KDF parameters** → Argon2id at OWASP-2023 × 3.3 memory, × 1.5 iterations. No weaker option.
-- **Timing attacks** → constant-time comparisons throughout.
-- **Keys in swap / crash dumps** → `SecureBuffer` via `sodium_malloc`/`sodium_memzero`.
-- **Math.random() for keys** → CSPRNG only; no user-callable RNG for security-sensitive values.
+- **Nonce reuse** → 192-bit random nonces via XChaCha20-Poly1305; nonces are never user-supplied in the public API.
+- **Skipped AAD / version downgrade** → AAD is mandatory and binds version + algorithm + blob ID + key identifier.
+- **Multi-key / partitioning-oracle attacks** → dedicated commitment key via HKDF with its own domain-separation string; commitment HMAC binds to blob ID; verified **before** AEAD.
+- **Silent serialization drift** → RFC 8785 canonical JSON for plaintext + verify-after-encrypt (every output round-trips through decrypt before release).
+- **Weak KDF parameters** → Argon2id at OWASP-2023 second-tier (t=3, m=64 MiB, p=1, dkLen=32). No weaker option exposed.
+- **Timing attacks** → constant-time comparisons throughout (`crypto.timingSafeEqual` in Node).
+- **Keys in swap / crash dumps** → `SecureBuffer` via `sodium_malloc` / `sodium_memzero`.
+- **`Math.random` for keys** → CSPRNG only; no user-callable RNG for security-sensitive values.
 - **Silent decryption failure** → commitment verified before AEAD; decrypt either returns plaintext or throws.
 
-The full list with publicly documented real-world cases and the specific package decision that prevents each is maintained alongside the design docs.
+Published test vectors cover RFC 8785 canonicalisation, RFC 5869 Appendix A.1 HKDF-SHA256, RFC 4231 §4.3 HMAC-SHA256, `draft-irtf-cfrg-xchacha` §A.3.1 XChaCha20-Poly1305 KAT (via decrypt path), and an Argon2id cross-implementation KAT against libsodium's `crypto_pwhash`.
 
 ## Maintenance posture
 
@@ -76,7 +89,8 @@ Requires Node 20+.
 ```bash
 npm install
 npm run build
-npm test
+npm test           # fast suite (~400 ms)
+npm run test:slow  # Argon2id cross-implementation KAT (~15 s)
 npm run lint
 ```
 

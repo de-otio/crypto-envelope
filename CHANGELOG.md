@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.0-alpha.1] - 2026-04-18
+
+First pre-release. Installs as `@de-otio/crypto-envelope@alpha`. The `@latest` tag is deliberately unused until chaoskb and trellis ship production releases against this package.
+
 ### Added — Phase A (foundation primitives)
 
 - `canonicalJson(obj)` — RFC 8785 JSON Canonicalization Scheme. Sorted keys recursively, no whitespace, escaping per §3.2. Rejects non-finite numbers, unpaired surrogates, non-plain-object values (Date/Map/Set/class instances), and nesting above depth 128.
