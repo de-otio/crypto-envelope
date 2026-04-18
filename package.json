@@ -3,7 +3,11 @@
   "version": "0.0.0",
   "description": "Opinionated authenticated-encryption envelopes for TypeScript. AEAD + AAD + key commitment + canonical JSON + tiered key management. Makes best-practice cryptography accessible to application developers while avoiding the common implementation mistakes.",
   "license": "MIT",
-  "author": "De Otio",
+  "author": {
+    "name": "De Otio",
+    "email": "security@de-otio.org",
+    "url": "https://github.com/de-otio"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/de-otio/crypto-envelope.git"
@@ -50,27 +54,19 @@
         "types": "./dist-cjs/primitives/index.d.ts",
         "default": "./dist-cjs/primitives/index.js"
       }
-    },
-    "./test-vectors": {
-      "import": {
-        "types": "./dist/test-vectors.d.ts",
-        "default": "./dist/test-vectors.js"
-      },
-      "require": {
-        "types": "./dist-cjs/test-vectors.d.ts",
-        "default": "./dist-cjs/test-vectors.js"
-      }
     }
   },
   "files": ["dist/", "dist-cjs/", "LICENSE", "README.md", "SECURITY.md", "CHANGELOG.md"],
   "scripts": {
     "build": "tsc && tsc -p tsconfig.cjs.json",
-    "test": "vitest run",
+    "test": "vitest run --exclude '**/slow/**'",
+    "test:slow": "vitest run test/slow",
+    "test:all": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "biome check . && tsc --noEmit",
     "lint:fix": "biome check --write .",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "npm run build && npm run test:all"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -79,14 +75,16 @@
     "access": "public",
     "provenance": true
   },
+  "dependencies": {
+    "@noble/ciphers": "^2.2.0",
+    "@noble/hashes": "^2.2.0",
+    "sodium-native": "^5.1.0"
+  },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.4",
     "typescript": "~5.9.0",
     "vitest": "^4.1.4"
-  },
-  "dependencies": {
-    "sodium-native": "^5.1.0"
   }
 }

@@ -45,11 +45,23 @@ describe('SecureBuffer', () => {
   });
 
   describe('dispose', () => {
+    it('actually zeroes the backing memory on dispose', () => {
+      const sb = SecureBuffer.alloc(16);
+      sb.buffer.fill(0xff);
+      // Keep a live reference before dispose so we can observe the
+      // zeroing after. `sb.buffer` throws post-dispose, but the Buffer
+      // reference we captured before still points at the same memory.
+      const leaked = sb.buffer;
+      expect(leaked.every((b) => b === 0xff)).toBe(true);
+
+      sb.dispose();
+      expect(leaked.every((b) => b === 0)).toBe(true);
+    });
+
     it('marks the buffer as disposed', () => {
       const sb = SecureBuffer.alloc(8);
       sb.buffer[0] = 0xff;
       sb.buffer[7] = 0xaa;
-
       sb.dispose();
       expect(sb.isDisposed).toBe(true);
     });

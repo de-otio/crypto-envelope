@@ -22,9 +22,10 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
       - run: npm ci
-      - run: npm run build
-      - run: npm test
-      # Uses Trusted Publishing via OIDC. Configure the binding at:
+      - run: npm run test:all
+      # `prepublishOnly` in package.json re-runs build + tests, so we
+      # don't need a separate build step here. Uses Trusted Publishing
+      # via OIDC. Configure the binding at:
       # https://www.npmjs.com/package/@de-otio/crypto-envelope/access
       # so no NPM_TOKEN is needed.
       - run: npm publish --provenance --access public
