@@ -44,6 +44,21 @@ jobs:
       - run: npm run build
       - run: npm test
 
+  test-slow:
+    # Heavy primitives (Argon2id at 64 MiB × t=3) — platform-independent
+    # pure math. Running on the full matrix costs ~75s of billed minutes
+    # per PR without adding coverage, so quarantine to one ubuntu cell.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:slow
+
   audit-signatures:
     runs-on: ubuntu-latest
     steps:

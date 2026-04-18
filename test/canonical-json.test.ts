@@ -42,9 +42,25 @@ describe('canonicalJson', () => {
       expect(canonicalJson({ s: '\b\t\n\f\r' })).toBe('{"s":"\\b\\t\\n\\f\\r"}');
     });
 
-    it('passes through non-BMP characters (emoji) literally', () => {
+    it('passes through a valid surrogate pair (emoji)', () => {
       const result = canonicalJson({ s: 'hello \u{1F600}' });
       expect(result).toContain('\u{1F600}');
+    });
+
+    it('rejects lone high surrogate', () => {
+      expect(() => canonicalJson({ s: '\uD800' })).toThrow('unpaired high surrogate');
+      expect(() => canonicalJson({ s: '\uD800x' })).toThrow('unpaired high surrogate');
+    });
+
+    it('rejects lone low surrogate', () => {
+      expect(() => canonicalJson({ s: '\uDC00' })).toThrow('unpaired low surrogate');
+    });
+
+    it('handles the U+2028 line separator without special treatment', () => {
+      // Differs from ECMA-262 §12.8.4 but matches RFC 8785 (JSON does not
+      // distinguish). Should appear literally.
+      const result = canonicalJson({ s: '\u2028' });
+      expect(result).toContain('\u2028');
     });
   });
 
@@ -62,11 +78,28 @@ describe('canonicalJson', () => {
     });
 
     it('rejects NaN', () => {
-      expect(() => canonicalJson({ n: Number.NaN })).toThrow('Non-finite');
+      expect(() => canonicalJson({ n: Number.NaN })).toThrow('non-finite');
     });
 
     it('rejects Infinity', () => {
-      expect(() => canonicalJson({ n: Number.POSITIVE_INFINITY })).toThrow('Non-finite');
+      expect(() => canonicalJson({ n: Number.POSITIVE_INFINITY })).toThrow('non-finite');
+    });
+
+    it('serialises large positive exponents identically to JSON.stringify', () => {
+      // RFC 8785 §3.2.2.3 defers number serialisation to ES §7.1.12.1,
+      // which is what V8's JSON.stringify implements (Ryū-based).
+      expect(canonicalJson({ n: 1e30 })).toBe(`{"n":${JSON.stringify(1e30)}}`);
+    });
+
+    it('serialises small magnitudes', () => {
+      expect(canonicalJson({ n: 0.000001 })).toBe(`{"n":${JSON.stringify(0.000001)}}`);
+    });
+
+    it('serialises integers above the safe integer boundary', () => {
+      // 2^53 is exactly representable; 2^53 + 1 collapses to 2^53. Not a
+      // library bug — a fundamental JS Number limitation; consumers that
+      // need precise large integers must pass them as strings.
+      expect(canonicalJson({ n: 2 ** 53 })).toBe(`{"n":${JSON.stringify(2 ** 53)}}`);
     });
   });
 
@@ -88,11 +121,60 @@ describe('canonicalJson', () => {
     it('serializes empty arrays', () => {
       expect(canonicalJson({ a: [] })).toBe('{"a":[]}');
     });
+
+    it('emits null for sparse-array holes (matches JSON.stringify)', () => {
+      // biome-ignore lint/suspicious/noSparseArray: testing sparse-array handling
+      const sparse: unknown[] = [1, , 3];
+      expect(canonicalJson({ a: sparse })).toBe('{"a":[1,null,3]}');
+    });
   });
 
   describe('undefined values', () => {
     it('omits undefined values', () => {
       expect(canonicalJson({ a: 1, b: undefined, c: 3 })).toBe('{"a":1,"c":3}');
+    });
+  });
+
+  describe('top-level input guard', () => {
+    it('rejects a non-object top level', () => {
+      expect(() => canonicalJson(42 as unknown as Record<string, unknown>)).toThrow('plain object');
+      expect(() => canonicalJson(null as unknown as Record<string, unknown>)).toThrow(
+        'plain object',
+      );
+      expect(() => canonicalJson([1, 2] as unknown as Record<string, unknown>)).toThrow(
+        'plain object',
+      );
+    });
+  });
+
+  describe('non-plain object rejection', () => {
+    it('rejects Date', () => {
+      expect(() => canonicalJson({ d: new Date() })).toThrow('unsupported object type');
+    });
+
+    it('rejects Map', () => {
+      expect(() => canonicalJson({ m: new Map() })).toThrow('unsupported object type');
+    });
+
+    it('rejects Set', () => {
+      expect(() => canonicalJson({ s: new Set() })).toThrow('unsupported object type');
+    });
+
+    it('rejects class instances', () => {
+      class Foo {
+        x = 1;
+      }
+      expect(() => canonicalJson({ v: new Foo() })).toThrow('unsupported object type');
+    });
+  });
+
+  describe('recursion guard', () => {
+    it('rejects deeply nested objects beyond the depth cap', () => {
+      let obj: Record<string, unknown> = { leaf: 1 };
+      for (let i = 0; i < 200; i++) {
+        obj = { wrap: obj };
+      }
+      expect(() => canonicalJson(obj)).toThrow(/nesting depth/);
     });
   });
 

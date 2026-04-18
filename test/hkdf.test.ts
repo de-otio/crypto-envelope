@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveKey } from '../src/primitives/hkdf.js';
+import { deriveCommitKey, deriveContentKey, deriveKey } from '../src/primitives/hkdf.js';
 
 describe('HKDF-SHA256', () => {
   describe('deriveKey', () => {
@@ -10,23 +10,23 @@ describe('HKDF-SHA256', () => {
 
     it('produces different output for different info strings', () => {
       const ikm = new Uint8Array(32).fill(0x01);
-      const key1 = deriveKey(ikm, 'info-one');
-      const key2 = deriveKey(ikm, 'info-two');
-      expect(Buffer.from(key1).equals(Buffer.from(key2))).toBe(false);
+      const k1 = deriveKey(ikm, 'info-one');
+      const k2 = deriveKey(ikm, 'info-two');
+      expect(Buffer.from(k1).equals(Buffer.from(k2))).toBe(false);
     });
 
     it('produces different output for different salts', () => {
       const ikm = new Uint8Array(32).fill(0x01);
-      const key1 = deriveKey(ikm, 'info', new Uint8Array(16).fill(0xaa));
-      const key2 = deriveKey(ikm, 'info', new Uint8Array(16).fill(0xbb));
-      expect(Buffer.from(key1).equals(Buffer.from(key2))).toBe(false);
+      const k1 = deriveKey(ikm, 'info', new Uint8Array(16).fill(0xaa));
+      const k2 = deriveKey(ikm, 'info', new Uint8Array(16).fill(0xbb));
+      expect(Buffer.from(k1).equals(Buffer.from(k2))).toBe(false);
     });
 
     it('is deterministic', () => {
       const ikm = new Uint8Array(32).fill(0x42);
-      const key1 = deriveKey(ikm, 'determinism-test');
-      const key2 = deriveKey(ikm, 'determinism-test');
-      expect(Buffer.from(key1)).toEqual(Buffer.from(key2));
+      const k1 = deriveKey(ikm, 'determinism-test');
+      const k2 = deriveKey(ikm, 'determinism-test');
+      expect(Buffer.from(k1)).toEqual(Buffer.from(k2));
     });
 
     it('supports custom output lengths', () => {
@@ -40,20 +40,32 @@ describe('HKDF-SHA256', () => {
       const withEmpty = deriveKey(ikm, 'test', new Uint8Array(0));
       expect(Buffer.from(withDefault)).toEqual(Buffer.from(withEmpty));
     });
+
+    it('accepts an empty IKM (RFC 5869 does not forbid it)', () => {
+      expect(deriveKey(new Uint8Array(0), 'empty-ikm').length).toBe(32);
+    });
+
+    it('rejects zero output length', () => {
+      expect(() => deriveKey(new Uint8Array(32), 'info', undefined, 0)).toThrow(RangeError);
+    });
+
+    it('rejects output length above RFC 5869 SHA-256 maximum (255 * 32)', () => {
+      expect(() => deriveKey(new Uint8Array(32), 'info', undefined, 255 * 32 + 1)).toThrow(
+        RangeError,
+      );
+    });
+
+    it('accepts output length equal to the RFC 5869 SHA-256 maximum', () => {
+      expect(deriveKey(new Uint8Array(32), 'info', undefined, 255 * 32).length).toBe(255 * 32);
+    });
   });
 
-  describe('RFC 5869 test vector 1 (SHA-256)', () => {
-    // From RFC 5869 Appendix A.1.
-    //   IKM  = 0x0b repeated 22 times
-    //   salt = 0x000102030405060708090a0b0c
-    //   info = 0xf0f1f2f3f4f5f6f7f8f9
-    //   L    = 42
-    //   OKM  = 0x3cb25f25faacd57a90434f64d0362f2a
-    //          2d2d0a90cf1a5a4c5db02d56ecc4c5bf
-    //          34007208d5b887185865
-    it('matches RFC 5869 Appendix A.1 expected OKM', async () => {
-      // The deriveKey API takes a string info; RFC 5869 test vectors use raw bytes.
-      // To test the vector exactly we call @noble/hashes directly.
+  describe('RFC 5869 Appendix A.1 (SHA-256)', () => {
+    it('matches the published OKM byte-for-byte', async () => {
+      // The deriveKey API takes info as a string; RFC 5869 test vectors
+      // use raw info bytes (0xf0..0xf9). We call @noble/hashes directly
+      // here to assert against the RFC expected value; this guards the
+      // underlying library version we pin.
       const { hkdf } = await import('@noble/hashes/hkdf.js');
       const { sha256 } = await import('@noble/hashes/sha2.js');
       const ikm = new Uint8Array(22).fill(0x0b);
@@ -65,8 +77,48 @@ describe('HKDF-SHA256', () => {
         '3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865',
         'hex',
       );
-      const okm = hkdf(sha256, ikm, salt, info, 42);
-      expect(Buffer.from(okm)).toEqual(expected);
+      expect(Buffer.from(hkdf(sha256, ikm, salt, info, 42))).toEqual(expected);
+    });
+  });
+
+  describe('deriveKey wrapper pinned output', () => {
+    // Pinned against the wrapper itself. Guards against future wrapper
+    // changes — swapping the info encoder (e.g. UTF-16), default salt,
+    // or default length would break this test.
+    it('produces a stable output for a fixed (ikm, info, salt, len)', () => {
+      const ikm = new Uint8Array(32).fill(0x0b);
+      const salt = new Uint8Array(16).fill(0x42);
+      const out = deriveKey(ikm, 'envelope-test/v1', salt, 32);
+      expect(Buffer.from(out).toString('hex')).toBe(
+        '07df1037781ff1c2ca474605eb418aed7f855163c74e1a15451c0f7ad0235237',
+      );
+    });
+  });
+
+  describe('named helpers', () => {
+    it('deriveContentKey and deriveCommitKey produce distinct bytes from the same IKM', () => {
+      const ikm = new Uint8Array(32).fill(0x01);
+      const content = deriveContentKey(ikm);
+      const commit = deriveCommitKey(ikm);
+      expect(content.length).toBe(32);
+      expect(commit.length).toBe(32);
+      expect(Buffer.from(content).equals(Buffer.from(commit))).toBe(false);
+    });
+
+    it('named helpers are deterministic', () => {
+      const ikm = new Uint8Array(32).fill(0x01);
+      expect(Buffer.from(deriveContentKey(ikm))).toEqual(Buffer.from(deriveContentKey(ikm)));
+      expect(Buffer.from(deriveCommitKey(ikm))).toEqual(Buffer.from(deriveCommitKey(ikm)));
+    });
+
+    it('named helpers use the documented info strings', () => {
+      const ikm = new Uint8Array(32).fill(0x01);
+      expect(Buffer.from(deriveContentKey(ikm))).toEqual(
+        Buffer.from(deriveKey(ikm, 'crypto-envelope/v1/content')),
+      );
+      expect(Buffer.from(deriveCommitKey(ikm))).toEqual(
+        Buffer.from(deriveKey(ikm, 'crypto-envelope/v1/commit')),
+      );
     });
   });
 });

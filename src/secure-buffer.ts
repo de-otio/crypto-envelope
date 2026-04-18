@@ -6,14 +6,26 @@ import type { ISecureBuffer } from './types.js';
  * Memory-locked buffer for sensitive key material.
  * Backed by `sodium_malloc` (mlock'd pages, guard pages) and zeroed with
  * `sodium_memzero` on dispose. Keys and secrets must use this rather than
- * plain `Uint8Array` / `Buffer` to avoid leaks via swap or crash dumps.
+ * plain `Uint8Array` / `Buffer` to avoid leakage via swap or crash dumps.
+ *
+ * Requires the host runtime to permit `mlock` — in practice, Node on any
+ * desktop or server OS. On platforms with a restrictive `RLIMIT_MEMLOCK`
+ * (AWS Lambda, some container setups), `sodium_malloc` fails and the
+ * constructor rethrows with guidance.
  */
 export class SecureBuffer implements ISecureBuffer {
   private _buffer: Buffer;
   private _disposed = false;
 
   private constructor(length: number) {
-    this._buffer = sodium.sodium_malloc(length);
+    try {
+      this._buffer = sodium.sodium_malloc(length);
+    } catch (err) {
+      throw new Error(
+        'SecureBuffer allocation failed; host may have a restrictive RLIMIT_MEMLOCK (AWS Lambda, some containers) or insufficient permissions for mlock',
+        { cause: err },
+      );
+    }
   }
 
   get buffer(): Buffer {
@@ -46,7 +58,14 @@ export class SecureBuffer implements ISecureBuffer {
 
   /**
    * Copy bytes into a new SecureBuffer and zero the source.
-   * The source is always zeroed — callers must not assume it is preserved.
+   *
+   * **Aliasing warning.** If `data` is a `Uint8Array` that is a view into a
+   * larger `ArrayBuffer` (common for `Buffer.from(...)` pooled buffers or
+   * slices returned by network/filesystem reads), zeroing this view writes
+   * zeros through the shared backing storage. Neighbouring buffers over the
+   * same `ArrayBuffer` will have their overlapping bytes cleared. Callers
+   * that must preserve the source must `SecureBuffer.from(Uint8Array.from(data))`
+   * to force a copy.
    */
   static from(data: Buffer | Uint8Array): SecureBuffer {
     const sb = new SecureBuffer(data.byteLength);
