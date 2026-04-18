@@ -40,9 +40,25 @@ Exposed via the `./primitives` subpath:
 - **Argon2id backed by `@noble/hashes`** rather than libsodium, so the primitives layer stays portable if runtime portability becomes a goal later.
 - **Node-only for v0.1.** `sodium-native` is a native addon; non-Node runtimes (Deno, Bun, browsers) aren't supported. A pluggable `SecureBufferImpl` is reserved for a future v2.
 
+### Added — Phase C (envelope v1 — JSON wire format)
+
+- `constructAAD(alg, id, kid, v)` — UTF-8 bytes of `canonicalJson({alg, id, kid, v})`, bound into every AEAD tag.
+- `encryptV1({ payload, cek, commitKey, kid, ts?, id? })` / `decryptV1(env, cek, commitKey)` — v1 envelope produce/consume. Includes verify-after-encrypt (round-trips through decrypt before returning). Validates `ct.len`, minimum ciphertext width, algorithm, and wire-format version on decrypt. Key commitment is verified **before** AEAD, so partitioning-oracle attacks land on the commitment check rather than the AEAD decrypt path.
+- `serializeV1(env)` / `deserializeV1(bytes)` — JSON wire I/O.
+
+### Added — Phase D (envelope v2 — CBOR wire format)
+
+- `serializeV2(env)` / `deserializeV2(bytes)` — CBOR with `"CKB"` magic prefix. ~33 % smaller than v1 JSON on typical ciphertexts.
+- `deserialize(bytes)` — auto-detect (CBOR magic → v2, otherwise v1 JSON).
+- `upgradeToV2(v1)` / `downgradeToV1(v2)` — lossless format conversion. Both describe the same cryptographic object; AAD is computed with `v: 1` in both cases.
+- Runtime dependency: `cborg@^4`.
+
+### Added — Phase E (high-level client)
+
+- `EnvelopeClient` — stateful client holding HKDF-derived content and commit keys in `SecureBuffer`s. Accepts a `Uint8Array` or `ISecureBuffer` master key. Default wire format is v2; v1 opt-in. Default `kid` is `'default'`. Supports `using`-based disposal.
+- `encrypt(payload)` / `decrypt(bytes)` — matches the README quickstart.
+
 ### Planned
 
-- Phases C/D — envelope v1 (JSON) and v2 (CBOR) wire formats.
-- Phase E — high-level `EnvelopeClient`.
 - Phases F/G — wire chaoskb and trellis as consumers.
 - Phase H — v0.1-beta release.

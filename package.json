@@ -78,6 +78,7 @@
   "dependencies": {
     "@noble/ciphers": "^2.2.0",
     "@noble/hashes": "^2.2.0",
+    "cborg": "^5.1.0",
     "sodium-native": "^5.1.0"
   },
   "devDependencies": {
