@@ -74,9 +74,9 @@ export function encryptV1(args: EncryptV1Args): EnvelopeV1 {
     enc: {
       alg: ALG,
       kid,
-      ct: Buffer.from(rawCt).toString('base64'),
+      ct: rawCt.toBase64(),
       'ct.len': rawCt.length,
-      commit: Buffer.from(commitment).toString('base64'),
+      commit: commitment.toBase64(),
     },
   };
 }
@@ -108,7 +108,7 @@ export function decryptV1(
     throw new Error(`unsupported algorithm: ${envelope.enc.alg}`);
   }
 
-  const rawCt = new Uint8Array(Buffer.from(envelope.enc.ct, 'base64'));
+  const rawCt = Uint8Array.fromBase64(envelope.enc.ct);
 
   const minLen = NONCE_LENGTH + TAG_LENGTH;
   if (rawCt.length < minLen) {
@@ -120,7 +120,7 @@ export function decryptV1(
     );
   }
 
-  const expectedCommit = new Uint8Array(Buffer.from(envelope.enc.commit, 'base64'));
+  const expectedCommit = Uint8Array.fromBase64(envelope.enc.commit);
   if (!verifyCommitment(commitKey, envelope.id, rawCt, expectedCommit)) {
     throw new Error('key commitment verification failed');
   }

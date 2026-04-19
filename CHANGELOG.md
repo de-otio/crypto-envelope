@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Minimum Node version bumped to 22.** Node 20 is no longer supported. This unlocks the native `Uint8Array.prototype.toBase64` / `Uint8Array.fromBase64` APIs, which replace the `Buffer.from(..., 'base64')` / `Buffer.from(bytes).toString('base64')` round-trips at the envelope parse/serialise boundary in `encryptV1` / `decryptV1` / `upgradeToV2` / `downgradeToV1`. Two incidental security wins: decoded envelope bytes are now allocated from a fresh `ArrayBuffer` (not the shared 8 KB `Buffer` pool, removing an aliasing hazard at the parse boundary), and base64 validation is strict by default (malformed input throws at decode time rather than being silently truncated and caught later by the AEAD tag check).
+- TypeScript toolchain bumped to `~6.0` to pick up `lib.esnext.typedarrays.d.ts` (where the Uint8Array base64 type definitions live).
+
+
 ## [0.1.0-alpha.1] - 2026-04-18
 
 First pre-release. Installs as `@de-otio/crypto-envelope@alpha`. The `@latest` tag is deliberately unused until chaoskb and trellis ship production releases against this package.

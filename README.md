@@ -24,7 +24,7 @@ The package is small and opinionated. It does one thing: encrypt and decrypt sel
 npm install @de-otio/crypto-envelope@alpha
 ```
 
-Node 20+ required. The package pulls in `sodium-native` (for `mlock`'d secure memory), which builds prebuilt binaries on install — no extra toolchain or `playwright`-style post-install step.
+Node 22+ required. The package pulls in `sodium-native` (for `mlock`'d secure memory), which builds prebuilt binaries on install — no extra toolchain or `playwright`-style post-install step.
 
 ## Quick start
 
@@ -84,7 +84,7 @@ This is a small-organisation, primarily-internal project. Honest expectations:
 
 ## Development
 
-Requires Node 20+.
+Requires Node 22+.
 
 ```bash
 npm install
