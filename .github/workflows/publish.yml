@@ -3,6 +3,12 @@ name: Publish
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Tag or ref to publish (e.g. v0.2.0-alpha.1)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,16 +22,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
       - uses: actions/setup-node@v6
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
           cache: npm
       - run: npm ci
+      # Build BEFORE test:all — test/bundler-smoke.test.ts imports from
+      # ./dist and will fail if the build didn't run. prepublishOnly also
+      # runs build but that's too late for the test step.
+      - run: npm run build
       - run: npm run test:all
-      # `prepublishOnly` in package.json re-runs build + tests, so we
-      # don't need a separate build step here. Uses Trusted Publishing
-      # via OIDC; no NPM_TOKEN is needed.
+      # Uses Trusted Publishing via OIDC; no NPM_TOKEN is needed.
       #
       # Pick the dist-tag from the version suffix so a pre-release never
       # accidentally becomes @latest: `-alpha` → alpha, `-beta` → beta,
