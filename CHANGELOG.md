@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Minimum Node version bumped to 22.** Node 20 is no longer supported. CI matrix moves from `[20, 22]` to `[22, 24]` and all `setup-node` actions pin to `node-version: 22`.
+- TypeScript toolchain bumped to `~6.0`. `tsconfig.cjs.json` adds `ignoreDeprecations: "6.0"` for the still-required `moduleResolution: "Node10"` CJS build target.
+
+_(Note: native `Uint8Array.prototype.toBase64` / `Uint8Array.fromBase64` APIs land in Node 24, not Node 22. The envelope boundary keeps the `Buffer.from(..., 'base64')` idiom for Node 22 compatibility; migration can happen when the supported-Node floor next bumps to 24.)_
+
+
 ## [0.1.0-alpha.1] - 2026-04-18
 
 First pre-release. Installs as `@de-otio/crypto-envelope@alpha`. The `@latest` tag is deliberately unused until chaoskb and trellis ship production releases against this package.
