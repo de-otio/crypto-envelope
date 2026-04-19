@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { getRandomBytes } from './internal/runtime.js';
 
 const BASE62_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -32,6 +32,6 @@ function base62Encode(bytes: Uint8Array): string {
  * encode content type or any metadata in the ID.
  */
 export function generateBlobId(): string {
-  const bytes = randomBytes(16);
+  const bytes = getRandomBytes(16);
   return `b_${base62Encode(bytes)}`;
 }

@@ -40,6 +40,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Argon2id migration (design-review B3 / plan §5 / §3.2) is a no-op.** chaoskb's `sodium-native`-backed Argon2 was extracted to `@noble/hashes/argon2` back in Phase B of plan-01 (see v0.1.0-alpha.1 entry below), so Phase II has no algorithm-implementation change on the Argon2 side — only the unified caller surface is new.
 - Runtime deps unchanged: `@noble/hashes` was already at the required version; `sodium-native` stays for `SecureBuffer`'s mlock/zero (Node-only, unchanged).
 
+### Added — Phase III (plan-02, SecureBuffer browser variant + runtime portability)
+
+- **`SecureBufferBrowser`** in `src/secure-buffer.browser.ts` — strict-by-default `ISecureBuffer` implementation for runtimes without `mlock`. Constructor and factory methods require an explicit `{ insecureMemory: true }` acknowledgement; omitting the flag **throws** rather than silently degrading (design-review Q1 / chaoskb browser plugin threat model). Fresh `ArrayBuffer` per allocation — no pool aliasing. `fill(0)` on dispose (best-effort; documented limitation — V8 GC may relocate before the zero).
+- **`InsecureMemoryAck` type** exported from `src/secure-buffer.ts`. Node's `SecureBuffer` accepts it as an optional no-op second arg to `from` / `alloc` so portable code can pass the flag everywhere; runtime asymmetry is that Node ignores it and browser enforces it.
+- **`package.json` `"browser"` field** remaps `./dist/secure-buffer.js` → `./dist/secure-buffer.browser.js` and stubs `sodium-native` to `false`. Works with every major bundler in 2026 (Vite, esbuild, webpack 5, Rollup, Parcel). The field was chosen over `exports` conditions because it's the only convention bundlers apply to deep package-internal imports.
+- **`src/internal/runtime.ts`** with `getRandomBytes(length)` and `constantTimeEqual(a, b)` — pure-JS helpers replacing `node:crypto.randomBytes` and `node:crypto.timingSafeEqual` at the four primitive call-sites (`blob-id`, `envelope/v1`, `primitives/aead`, `primitives/commitment`). Uses `globalThis.crypto.getRandomValues` (available on Node ≥20, every modern browser, Deno ≥2, Bun ≥1, Cloudflare Workers, Vercel Edge). Throws (rather than falling back to `Math.random`) if WebCrypto is unavailable.
+- `constantTimeEqual` is the XOR-accumulate pattern used by `@noble/hashes.equalBytes` and `libsodium.sodium_memcmp` — length-mismatch returns early (public-information leak only), then every byte is touched regardless of first differing index.
+- **Browser bundler smoke test** (`test/bundler-smoke.test.ts`) — builds a synthetic entry that imports the full public surface via `esbuild --platform=browser`, asserts the output contains no `sodium_malloc` / `sodium_memzero` / `sodium-native` / `.node` strings and contains the browser SecureBuffer's sentinel error message (proving the browser-field swap happened). New devDep `esbuild@^0.28`.
+- **`SecureBufferBrowser` unit tests** (12 new) covering ack enforcement (missing flag, truthy-non-object, `insecureMemory: false`), allocation/dispose/zeroing lifecycle, backing-storage isolation between instances, and `.from()` non-aliasing with the source `ArrayBuffer`.
+
+### Changed — Phase III
+
+- `src/primitives/aead.ts` now uses `getRandomBytes` from `src/internal/runtime.ts` instead of `node:crypto.randomBytes`. Doc comment updated.
+- `src/primitives/commitment.ts` `verifyCommitment` uses `constantTimeEqual` instead of `node:crypto.timingSafeEqual`. Internal simplification — the length-check short-circuit is now inside `constantTimeEqual`.
+- `src/envelope/v1.ts` verify-after-encrypt uses `constantTimeEqual`.
+- `src/blob-id.ts` uses `getRandomBytes`.
+- No external API changes. The `node:crypto` imports are gone but consumers who relied only on the public exports see no difference.
+
 
 ## [0.1.0-alpha.1] - 2026-04-18
 

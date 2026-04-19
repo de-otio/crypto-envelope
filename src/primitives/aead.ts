@@ -1,6 +1,6 @@
-import { randomBytes } from 'node:crypto';
 import { gcm } from '@noble/ciphers/aes.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha.js';
+import { getRandomBytes } from '../internal/runtime.js';
 import type { Algorithm } from '../types.js';
 
 // ── Per-algorithm constants ──────────────────────────────────────────────
@@ -47,10 +47,10 @@ export interface AeadResult {
 
 /**
  * Encrypt with the given AEAD algorithm using a fresh random nonce drawn
- * from `node:crypto.randomBytes`. The public API does **not** accept a
- * nonce parameter — nonce reuse under a key is a classic AEAD break and
- * the library treats "let the caller pick the nonce" as a footgun (see
- * CLAUDE.md §2).
+ * from `globalThis.crypto.getRandomValues`. The public API does **not**
+ * accept a nonce parameter — nonce reuse under a key is a classic AEAD
+ * break and the library treats "let the caller pick the nonce" as a
+ * footgun (see CLAUDE.md §2).
  *
  * Nonce-width implications:
  * - XChaCha20-Poly1305 uses a 192-bit nonce; the birthday bound on random
@@ -112,7 +112,7 @@ export function aeadDecrypt(
 
 function aeadEncryptXChaCha(key: Uint8Array, plaintext: Uint8Array, aad: Uint8Array): AeadResult {
   checkKey(key, 'XChaCha20-Poly1305');
-  const nonce = new Uint8Array(randomBytes(XCHACHA_NONCE_LENGTH));
+  const nonce = getRandomBytes(XCHACHA_NONCE_LENGTH);
   const cipher = xchacha20poly1305(key, nonce, aad);
   const sealed = cipher.encrypt(plaintext);
 
@@ -152,7 +152,7 @@ function aeadDecryptXChaCha(
 
 function aeadEncryptAesGcm(key: Uint8Array, plaintext: Uint8Array, aad: Uint8Array): AeadResult {
   checkKey(key, 'AES-256-GCM');
-  const nonce = new Uint8Array(randomBytes(AES_GCM_NONCE_LENGTH));
+  const nonce = getRandomBytes(AES_GCM_NONCE_LENGTH);
   // `gcm(key, nonce, aad)` — @noble/ciphers v1+ factory shape. Returns an
   // object with .encrypt(plaintext) / .decrypt(sealed) that appends/consumes
   // a 16-byte GCM tag.

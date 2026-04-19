@@ -3,6 +3,21 @@ import sodium from 'sodium-native';
 import type { ISecureBuffer } from './types.js';
 
 /**
+ * Acknowledgement flag for runtimes that cannot mlock. **Ignored on Node**
+ * — `sodium_malloc` mlocks regardless. Required on the browser variant
+ * (`src/secure-buffer.browser.ts`) because browsers have no equivalent
+ * of mlock and the buffer contents may be swapped, GC-relocated, or
+ * DevTools-visible.
+ *
+ * Accept the flag in signatures here even though Node ignores it, so
+ * that code written for both runtimes compiles against one type surface.
+ * Runtime asymmetry: Node silently ignores, browser rejects if missing.
+ */
+export interface InsecureMemoryAck {
+  insecureMemory: true;
+}
+
+/**
  * Memory-locked buffer for sensitive key material.
  * Backed by `sodium_malloc` (mlock'd pages, guard pages) and zeroed with
  * `sodium_memzero` on dispose. Keys and secrets must use this rather than
@@ -67,7 +82,7 @@ export class SecureBuffer implements ISecureBuffer {
    * that must preserve the source must `SecureBuffer.from(Uint8Array.from(data))`
    * to force a copy.
    */
-  static from(data: Buffer | Uint8Array): SecureBuffer {
+  static from(data: Buffer | Uint8Array, _ack?: InsecureMemoryAck): SecureBuffer {
     const sb = new SecureBuffer(data.byteLength);
     const buf = Buffer.isBuffer(data)
       ? data
@@ -78,7 +93,7 @@ export class SecureBuffer implements ISecureBuffer {
   }
 
   /** Allocate a zeroed SecureBuffer of the given length. */
-  static alloc(length: number): SecureBuffer {
+  static alloc(length: number, _ack?: InsecureMemoryAck): SecureBuffer {
     const sb = new SecureBuffer(length);
     sodium.sodium_memzero(sb._buffer);
     return sb;
