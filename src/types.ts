@@ -82,3 +82,19 @@ export interface EnvelopeV2 {
 }
 
 export type AnyEnvelope = EnvelopeV1 | EnvelopeV2;
+
+/**
+ * Branded type for the 32-byte master key that seeds `EnvelopeClient`
+ * (Phase IV) and keyring's tier system (`@de-otio/keyring`).
+ *
+ * The brand exists only in the type system — at runtime a `MasterKey` is a
+ * plain `ISecureBuffer`. The brand prevents a common key-confusion bug
+ * (design-review B8): passphrase-derived bytes leaving `deriveMasterKeyFromPassphrase`
+ * cannot be handed directly to an AEAD primitive as a CEK without an
+ * explicit unbranding cast, which becomes the audit-trail record of "I'm
+ * doing something the type system warned me about".
+ *
+ * Produced by `deriveMasterKeyFromPassphrase` or by explicit brand
+ * assertion via `asMasterKey(buf)` from `src/passphrase.ts`.
+ */
+export type MasterKey = ISecureBuffer & { readonly __brand: 'MasterKey' };

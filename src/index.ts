@@ -25,10 +25,18 @@ export {
   downgradeToV1,
   type EncryptV1Args,
 } from './envelope/index.js';
+export {
+  asMasterKey,
+  deriveMasterKeyFromPassphrase,
+  PBKDF2_SHA256_MIN_ITERATIONS,
+  type DeriveMasterKeyOptions,
+  type PassphraseKdfParams,
+} from './passphrase.js';
 export type {
   Algorithm,
   AnyEnvelope,
   EnvelopeV1,
   EnvelopeV2,
   ISecureBuffer,
+  MasterKey,
 } from './types.js';
