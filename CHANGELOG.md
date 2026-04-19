@@ -22,6 +22,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `NONCE_LENGTH` export remains as a `@deprecated` alias for `XCHACHA_NONCE_LENGTH` to keep any external callers compiling; removal scheduled for v0.3.
 - `Algorithm` type documents the 96-bit-vs-192-bit nonce trade-off, the per-key message bound for AES-GCM (2³² per NIST SP 800-38D §8.3, hard cap enforced in Phase IV per design-review blocker B2), and the commitment's key-committing (not context-committing) property.
 
+### Added — Phase II (plan-02, PBKDF2 + passphrase-KDF unification)
+
+- **`MasterKey` branded type** (`ISecureBuffer & { readonly __brand: 'MasterKey' }`) — the 32-byte key that seeds `EnvelopeClient` (Phase IV) and `@de-otio/keyring`'s tier system. The brand prevents key-confusion at compile time (design-review blocker B8): passphrase-derived bytes cannot be handed to an AEAD primitive as a CEK without an explicit unbranding cast.
+- **`deriveMasterKeyFromPassphrase(passphrase, salt, params, options?)`** in `src/passphrase.ts` — unified, async, branded-return passphrase KDF with `AbortSignal` support. Discriminated-union `PassphraseKdfParams`:
+  - `{ algorithm: 'argon2id' }` — **mandatory default** at OWASP 2023 second-tier parameters (t=3, m=64 MiB, p=1, dkLen=32).
+  - `{ algorithm: 'pbkdf2-sha256', iterations: N }` — **compatibility-only fallback**. WebCrypto-constrained runtimes where shipping WASM Argon2 is not viable. Runtime one-time `console.warn` when this branch is taken, naming the Argon2id-preferred posture.
+- **PBKDF2-SHA256 iteration floor: 1,000,000** (raised from OWASP 2023's 600,000 per design-review should-fix S1 — hardware improves ~30%/year; the 1M floor keeps PBKDF2-on-2026-hardware roughly at OWASP's intended cost budget). Reviewed annually per SECURITY.md cadence commitments.
+- **`pbkdf2Sha256(passphrase, salt, params)`** primitive export under `./primitives` — thin wrapper over `@noble/hashes/pbkdf2`, pure-JS, runs on every WebCrypto-compliant runtime.
+- **`asMasterKey(buf: ISecureBuffer): MasterKey`** — brand-assertion helper for advanced callers (test vectors, migration paths, hardware-sourced key material). Rejects buffers not exactly 32 bytes.
+- RFC 7914 §11 PBKDF2-SHA256 Known-Answer Tests covering `c=1` (fast path) and `c=80000` (full iteration). Matches the most-reproduced PBKDF2-SHA256 reference vectors; a regression in `@noble/hashes/pbkdf2` or in the wrapper's iteration/length handling will fail these.
+- `AbortSignal` on `deriveMasterKeyFromPassphrase`: checked pre- and post-derivation. Argon2id runs synchronously inside `@noble/hashes` so the signal does not interrupt mid-iteration; a future release may chunk the loop.
+- Internal testing helper `_resetPbkdf2WarnForTests()` exported (underscore-prefixed) so the one-time-per-process warn flag can be reset in tests. Not part of the public API.
+
+### Notes — Phase II
+
+- **Argon2id migration (design-review B3 / plan §5 / §3.2) is a no-op.** chaoskb's `sodium-native`-backed Argon2 was extracted to `@noble/hashes/argon2` back in Phase B of plan-01 (see v0.1.0-alpha.1 entry below), so Phase II has no algorithm-implementation change on the Argon2 side — only the unified caller surface is new.
+- Runtime deps unchanged: `@noble/hashes` was already at the required version; `sodium-native` stays for `SecureBuffer`'s mlock/zero (Node-only, unchanged).
+
 
 ## [0.1.0-alpha.1] - 2026-04-18
 

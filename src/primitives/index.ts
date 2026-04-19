@@ -21,5 +21,6 @@ export {
 export { deriveKey, deriveContentKey, deriveCommitKey } from './hkdf.js';
 export { computeCommitment, verifyCommitment } from './commitment.js';
 export { deriveFromPassphrase } from './argon2.js';
+export { pbkdf2Sha256, PBKDF2_DEFAULT_OUTPUT_LENGTH, type Pbkdf2Params } from './pbkdf2.js';
 
 export type { ISecureBuffer } from '../types.js';
