@@ -95,8 +95,8 @@ export function upgradeToV2(v1: EnvelopeV1): EnvelopeV2 {
     enc: {
       alg: v1.enc.alg,
       kid: v1.enc.kid,
-      ct: Uint8Array.fromBase64(v1.enc.ct),
-      commit: Uint8Array.fromBase64(v1.enc.commit),
+      ct: new Uint8Array(Buffer.from(v1.enc.ct, 'base64')),
+      commit: new Uint8Array(Buffer.from(v1.enc.commit, 'base64')),
     },
   };
 }
@@ -110,9 +110,9 @@ export function downgradeToV1(v2: EnvelopeV2): EnvelopeV1 {
     enc: {
       alg: v2.enc.alg,
       kid: v2.enc.kid,
-      ct: v2.enc.ct.toBase64(),
+      ct: Buffer.from(v2.enc.ct).toString('base64'),
       'ct.len': v2.enc.ct.length,
-      commit: v2.enc.commit.toBase64(),
+      commit: Buffer.from(v2.enc.commit).toString('base64'),
     },
   };
 }

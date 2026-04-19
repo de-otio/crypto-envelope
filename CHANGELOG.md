@@ -8,8 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Minimum Node version bumped to 22.** Node 20 is no longer supported. This unlocks the native `Uint8Array.prototype.toBase64` / `Uint8Array.fromBase64` APIs, which replace the `Buffer.from(..., 'base64')` / `Buffer.from(bytes).toString('base64')` round-trips at the envelope parse/serialise boundary in `encryptV1` / `decryptV1` / `upgradeToV2` / `downgradeToV1`. Two incidental security wins: decoded envelope bytes are now allocated from a fresh `ArrayBuffer` (not the shared 8 KB `Buffer` pool, removing an aliasing hazard at the parse boundary), and base64 validation is strict by default (malformed input throws at decode time rather than being silently truncated and caught later by the AEAD tag check).
-- TypeScript toolchain bumped to `~6.0` to pick up `lib.esnext.typedarrays.d.ts` (where the Uint8Array base64 type definitions live).
+- **Minimum Node version bumped to 22.** Node 20 is no longer supported. CI matrix moves from `[20, 22]` to `[22, 24]` and all `setup-node` actions pin to `node-version: 22`.
+- TypeScript toolchain bumped to `~6.0`. `tsconfig.cjs.json` adds `ignoreDeprecations: "6.0"` for the still-required `moduleResolution: "Node10"` CJS build target.
+
+_(Note: native `Uint8Array.prototype.toBase64` / `Uint8Array.fromBase64` APIs land in Node 24, not Node 22. The envelope boundary keeps the `Buffer.from(..., 'base64')` idiom for Node 22 compatibility; migration can happen when the supported-Node floor next bumps to 24.)_
 
 
 ## [0.1.0-alpha.1] - 2026-04-18
