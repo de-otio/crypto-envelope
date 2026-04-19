@@ -9,10 +9,17 @@ export { generateBlobId } from './blob-id.js';
 export { SecureBuffer } from './secure-buffer.js';
 export { constructAAD } from './aad.js';
 export {
+  AES_GCM_HARD_CAP,
   EnvelopeClient,
+  NonceBudgetExceeded,
   type EnvelopeClientOptions,
   type WireFormat,
 } from './envelope-client.js';
+export {
+  InMemoryMessageCounter,
+  keyFingerprint,
+  type MessageCounter,
+} from './message-counter.js';
 export {
   encryptV1,
   decryptV1,

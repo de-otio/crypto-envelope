@@ -58,6 +58,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `src/blob-id.ts` uses `getRandomBytes`.
 - No external API changes. The `node:crypto` imports are gone but consumers who relied only on the public exports see no difference.
 
+### Added — Phase IV (plan-02, EnvelopeClient algorithm selection + AES-GCM hard cap)
+
+- **`EnvelopeClient` algorithm selection.** Constructor gains an optional `algorithm?: Algorithm` option. Default remains `'XChaCha20-Poly1305'`; `'AES-256-GCM'` is available for interop with external systems. Decryption stays algorithm-agnostic — the envelope carries `enc.alg` and the client routes based on it, so a default-XChaCha client can still decrypt AES-GCM envelopes.
+- **`EnvelopeClient.forAesGcmInterop(options)`** named factory. The discoverable surface for AES-GCM (design-review blocker B9): the factory name signals the trade-off at the call-site. Mid-level consumers writing first-time code see `forAesGcmInterop` in IntelliSense and can investigate the per-key message cap before committing.
+- **`MessageCounter` interface** + **`InMemoryMessageCounter` default** in `src/message-counter.ts`. `async increment(keyFingerprint)` / `async current(keyFingerprint)`. The in-memory default resets on every process restart — suitable for CLI / single-process server use — and emits a one-time `console.warn` naming the limitation so multi-process / serverless consumers are prompted to supply a durable backend (SQLite, DynamoDB, Redis).
+- **Key fingerprint** via `keyFingerprint(commitKey)` — HMAC-SHA256 over the commit key with a fixed `"crypto-envelope/v1/keyfp"` label, truncated to 16 bytes. Safe to persist and log (HMAC one-wayness; 128 bits output is collision-resistant for indexing).
+- **`AES_GCM_HARD_CAP = 2^32`** constant + **`NonceBudgetExceeded`** error (design-review blocker B2). On every encrypt, the client increments the message counter; if the algorithm is AES-GCM and the new counter value exceeds the cap, encryption throws `NonceBudgetExceeded` with the fingerprint, counter value, and algorithm attached. Consumers are expected to rotate the master key and retry. XChaCha20-Poly1305 has no practical cap — its counter is incremented for rotation-policy observability (keyring consumes this) but no hard refusal applies.
+- Keyring integration hook: `client.keyFingerprint` (getter) and `client.currentCount()` (async) expose the fingerprint and current counter so `@de-otio/keyring`'s rotation policy can watch soft/hard thresholds.
+
+### Changed — Phase IV
+
+- **BREAKING (pre-1.0 alpha):** `EnvelopeClient.encrypt(...)` and `EnvelopeClient.decrypt(...)` are now **async**. The counter integration surfaces `Promise<number>` for durable backends; callers update one `await`. Chaoskb's consumer changes as part of plan-01 Phase F.
+- `src/envelope/v1.ts` `encryptV1` takes an optional `algorithm?: Algorithm` argument (defaulting to XChaCha20-Poly1305). `decryptV1` stays signature-stable and routes on `envelope.enc.alg`.
+- Envelope-client tests rewritten for the async signature (+13 new tests covering AES-GCM via direct option and factory, cross-algorithm decrypt, hard-cap enforcement with primed counters, fingerprint stability, counter sharing).
+
+### Notes — Phase IV
+
+- Durable `MessageCounter` implementations are the **consumer's** responsibility; the package ships only the in-memory default. Keyring's plan §7 and design-review open-question Q5 establish the contract.
+- Phase IV does not add Wycheproof-vector coverage for AES-GCM envelopes on top of what the primitive-level tests cover in Phase I — envelope-level integration relies on round-trip + tamper coverage. AES-GCM test-vector snapshots for `envelope-v1`/`v2` can land as a follow-up if a specific external system requires interop verification.
+
 
 ## [0.1.0-alpha.1] - 2026-04-18
 

@@ -6,7 +6,7 @@ import { TAG_LENGTH, aeadDecrypt, aeadEncrypt, nonceLengthFor } from '../primiti
 import { computeCommitment, verifyCommitment } from '../primitives/commitment.js';
 import type { Algorithm, EnvelopeV1 } from '../types.js';
 
-const ALG: Algorithm = 'XChaCha20-Poly1305';
+const DEFAULT_ALG: Algorithm = 'XChaCha20-Poly1305';
 const ENCODER = new TextEncoder();
 const DECODER = new TextDecoder();
 
@@ -19,6 +19,14 @@ export interface EncryptV1Args {
   commitKey: Uint8Array;
   /** Opaque key identifier; bound into AAD. */
   kid: string;
+  /**
+   * AEAD algorithm. Defaults to `'XChaCha20-Poly1305'`. AES-256-GCM is
+   * available for interop with external systems; the envelope client
+   * (Phase IV) enforces the 2³² per-key message cap on the GCM path.
+   * Callers using this function directly are responsible for honouring
+   * the cap themselves — see `src/message-counter.ts`.
+   */
+  algorithm?: Algorithm;
   /** ISO 8601 timestamp; defaults to `new Date().toISOString()`. */
   ts?: string;
   /** Blob identifier; defaults to {@link generateBlobId}. */
@@ -45,13 +53,14 @@ export interface EncryptV1Args {
  */
 export function encryptV1(args: EncryptV1Args): EnvelopeV1 {
   const { payload, cek, commitKey, kid } = args;
+  const alg: Algorithm = args.algorithm ?? DEFAULT_ALG;
   const id = args.id ?? generateBlobId();
   const ts = args.ts ?? new Date().toISOString();
 
   const plaintext = ENCODER.encode(canonicalJson(payload));
-  const aad = constructAAD(ALG, id, kid, 1);
+  const aad = constructAAD(alg, id, kid, 1);
 
-  const { nonce, ciphertext, tag } = aeadEncrypt(ALG, cek, plaintext, aad);
+  const { nonce, ciphertext, tag } = aeadEncrypt(alg, cek, plaintext, aad);
 
   const rawCt = new Uint8Array(nonce.length + ciphertext.length + tag.length);
   rawCt.set(nonce, 0);
@@ -61,7 +70,7 @@ export function encryptV1(args: EncryptV1Args): EnvelopeV1 {
   const commitment = computeCommitment(commitKey, id, rawCt);
 
   // Verify-after-encrypt — guards against a bug in the AEAD primitive.
-  const recovered = aeadDecrypt(ALG, cek, nonce, ciphertext, tag, aad);
+  const recovered = aeadDecrypt(alg, cek, nonce, ciphertext, tag, aad);
   if (!constantTimeEqual(recovered, plaintext)) {
     throw new Error('verify-after-encrypt failed: decrypted plaintext does not match input');
   }
@@ -71,7 +80,7 @@ export function encryptV1(args: EncryptV1Args): EnvelopeV1 {
     id,
     ts,
     enc: {
-      alg: ALG,
+      alg,
       kid,
       ct: Buffer.from(rawCt).toString('base64'),
       'ct.len': rawCt.length,
@@ -103,7 +112,7 @@ export function decryptV1(
   if (envelope.v !== 1) {
     throw new Error(`unsupported envelope version: ${envelope.v}`);
   }
-  if (envelope.enc.alg !== ALG) {
+  if (envelope.enc.alg !== 'XChaCha20-Poly1305' && envelope.enc.alg !== 'AES-256-GCM') {
     throw new Error(`unsupported algorithm: ${envelope.enc.alg}`);
   }
 
