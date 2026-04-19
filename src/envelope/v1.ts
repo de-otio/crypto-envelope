@@ -3,7 +3,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { constructAAD } from '../aad.js';
 import { generateBlobId } from '../blob-id.js';
 import { canonicalJson } from '../canonical-json.js';
-import { NONCE_LENGTH, TAG_LENGTH, aeadDecrypt, aeadEncrypt } from '../primitives/aead.js';
+import { TAG_LENGTH, aeadDecrypt, aeadEncrypt, nonceLengthFor } from '../primitives/aead.js';
 import { computeCommitment, verifyCommitment } from '../primitives/commitment.js';
 import type { Algorithm, EnvelopeV1 } from '../types.js';
 
@@ -52,7 +52,7 @@ export function encryptV1(args: EncryptV1Args): EnvelopeV1 {
   const plaintext = ENCODER.encode(canonicalJson(payload));
   const aad = constructAAD(ALG, id, kid, 1);
 
-  const { nonce, ciphertext, tag } = aeadEncrypt(cek, plaintext, aad);
+  const { nonce, ciphertext, tag } = aeadEncrypt(ALG, cek, plaintext, aad);
 
   const rawCt = new Uint8Array(nonce.length + ciphertext.length + tag.length);
   rawCt.set(nonce, 0);
@@ -62,7 +62,7 @@ export function encryptV1(args: EncryptV1Args): EnvelopeV1 {
   const commitment = computeCommitment(commitKey, id, rawCt);
 
   // Verify-after-encrypt — guards against a bug in the AEAD primitive.
-  const recovered = aeadDecrypt(cek, nonce, ciphertext, tag, aad);
+  const recovered = aeadDecrypt(ALG, cek, nonce, ciphertext, tag, aad);
   if (recovered.length !== plaintext.length || !timingSafeEqual(recovered, plaintext)) {
     throw new Error('verify-after-encrypt failed: decrypted plaintext does not match input');
   }
@@ -110,7 +110,8 @@ export function decryptV1(
 
   const rawCt = new Uint8Array(Buffer.from(envelope.enc.ct, 'base64'));
 
-  const minLen = NONCE_LENGTH + TAG_LENGTH;
+  const nonceLen = nonceLengthFor(envelope.enc.alg);
+  const minLen = nonceLen + TAG_LENGTH;
   if (rawCt.length < minLen) {
     throw new Error(`truncated ciphertext: expected at least ${minLen} bytes, got ${rawCt.length}`);
   }
@@ -126,11 +127,11 @@ export function decryptV1(
   }
 
   const aad = constructAAD(envelope.enc.alg, envelope.id, envelope.enc.kid, 1);
-  const nonce = rawCt.subarray(0, NONCE_LENGTH);
-  const ciphertext = rawCt.subarray(NONCE_LENGTH, rawCt.length - TAG_LENGTH);
+  const nonce = rawCt.subarray(0, nonceLen);
+  const ciphertext = rawCt.subarray(nonceLen, rawCt.length - TAG_LENGTH);
   const tag = rawCt.subarray(rawCt.length - TAG_LENGTH);
 
-  const plaintext = aeadDecrypt(cek, nonce, ciphertext, tag, aad);
+  const plaintext = aeadDecrypt(envelope.enc.alg, cek, nonce, ciphertext, tag, aad);
 
   return JSON.parse(DECODER.decode(plaintext)) as Record<string, unknown>;
 }
