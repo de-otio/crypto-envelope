@@ -1,6 +1,6 @@
-import { timingSafeEqual } from 'node:crypto';
 import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 } from '@noble/hashes/sha2.js';
+import { constantTimeEqual } from '../internal/runtime.js';
 
 const ENCODER = new TextEncoder();
 
@@ -31,11 +31,10 @@ export function computeCommitment(
 }
 
 /**
- * Verify a commitment using a constant-time comparison. Length mismatch
- * returns false without invoking the timing-safe primitive (Node's
- * `timingSafeEqual` throws on length mismatch, so the length check must
- * be first). The tag length itself is public information (it's on the
- * envelope), so the length-based short-circuit leaks nothing secret.
+ * Verify a commitment using a constant-time comparison. The tag length
+ * itself is public information (it's on the envelope), so a length-based
+ * short-circuit leaks nothing secret — `constantTimeEqual` performs the
+ * length check before entering the XOR-accumulate loop.
  */
 export function verifyCommitment(
   commitKey: Uint8Array,
@@ -43,9 +42,5 @@ export function verifyCommitment(
   rawCt: Uint8Array,
   expected: Uint8Array,
 ): boolean {
-  const computed = computeCommitment(commitKey, id, rawCt);
-  if (computed.length !== expected.length) {
-    return false;
-  }
-  return timingSafeEqual(computed, expected);
+  return constantTimeEqual(computeCommitment(commitKey, id, rawCt), expected);
 }

@@ -36,25 +36,20 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist-cjs/index.d.ts",
-        "default": "./dist-cjs/index.js"
-      }
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist-cjs/index.js"
     },
     "./primitives": {
-      "import": {
-        "types": "./dist/primitives/index.d.ts",
-        "default": "./dist/primitives/index.js"
-      },
-      "require": {
-        "types": "./dist-cjs/primitives/index.d.ts",
-        "default": "./dist-cjs/primitives/index.js"
-      }
+      "types": "./dist/primitives/index.d.ts",
+      "import": "./dist/primitives/index.js",
+      "require": "./dist-cjs/primitives/index.js"
     }
+  },
+  "browser": {
+    "./dist/secure-buffer.js": "./dist/secure-buffer.browser.js",
+    "./dist-cjs/secure-buffer.js": "./dist/secure-buffer.browser.js",
+    "sodium-native": false
   },
   "files": ["dist/", "dist-cjs/", "LICENSE", "README.md", "SECURITY.md", "CHANGELOG.md"],
   "scripts": {
@@ -85,6 +80,7 @@
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.4",
+    "esbuild": "^0.28.0",
     "typescript": "~6.0.0",
     "vitest": "^4.1.4"
   }

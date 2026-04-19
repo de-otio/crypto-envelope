@@ -1,8 +1,7 @@
-import { timingSafeEqual } from 'node:crypto';
-
 import { constructAAD } from '../aad.js';
 import { generateBlobId } from '../blob-id.js';
 import { canonicalJson } from '../canonical-json.js';
+import { constantTimeEqual } from '../internal/runtime.js';
 import { TAG_LENGTH, aeadDecrypt, aeadEncrypt, nonceLengthFor } from '../primitives/aead.js';
 import { computeCommitment, verifyCommitment } from '../primitives/commitment.js';
 import type { Algorithm, EnvelopeV1 } from '../types.js';
@@ -63,7 +62,7 @@ export function encryptV1(args: EncryptV1Args): EnvelopeV1 {
 
   // Verify-after-encrypt — guards against a bug in the AEAD primitive.
   const recovered = aeadDecrypt(ALG, cek, nonce, ciphertext, tag, aad);
-  if (recovered.length !== plaintext.length || !timingSafeEqual(recovered, plaintext)) {
+  if (!constantTimeEqual(recovered, plaintext)) {
     throw new Error('verify-after-encrypt failed: decrypted plaintext does not match input');
   }
 
