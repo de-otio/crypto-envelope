@@ -6,7 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Added — Phase I (plan-02, AES-256-GCM primitive)
+## [0.2.0-alpha.1] - 2026-04-19
+
+Second pre-release. Implements plan-02 Phases I–IV — AES-256-GCM as a second AEAD algorithm, unified passphrase-KDF with `MasterKey` brand, strict-by-default browser `SecureBuffer`, and `EnvelopeClient` algorithm selection with the 2³² AES-GCM hard cap. The package now runs on any WebCrypto-compliant runtime (Node ≥22, modern browsers, Deno ≥2, Bun ≥1, Cloudflare Workers, Vercel Edge).
+
+Installs as `@de-otio/crypto-envelope@alpha`. The `@latest` tag remains deliberately unused until chaoskb and trellis each ship a production release on this line.
+
+**Breaking (pre-1.0 alpha line):** `EnvelopeClient.encrypt` / `decrypt` are now `async`; `aeadEncrypt` / `aeadDecrypt` primitives take an explicit `alg` parameter. No external API change for consumers that only use the envelope client's public surface via the v0.1 quick-use pattern, modulo the `async` update.
+
+### Added — Phase I (AES-256-GCM primitive)
 
 - **AES-256-GCM as a second AEAD algorithm** alongside XChaCha20-Poly1305. `Algorithm` union widens to `'XChaCha20-Poly1305' | 'AES-256-GCM'`. Implementation via `@noble/ciphers/aes`'s `gcm(key, nonce, aad)` — the same noble stack already shipping for XChaCha, no new runtime dependency.
 - `aeadEncrypt(alg, key, plaintext, aad)` / `aeadDecrypt(alg, key, nonce, ciphertext, tag, aad)` now take an explicit `alg` parameter (breaking change within the pre-1.0 alpha line — callers in this package already updated; chaoskb does not import the primitive directly).
@@ -22,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `NONCE_LENGTH` export remains as a `@deprecated` alias for `XCHACHA_NONCE_LENGTH` to keep any external callers compiling; removal scheduled for v0.3.
 - `Algorithm` type documents the 96-bit-vs-192-bit nonce trade-off, the per-key message bound for AES-GCM (2³² per NIST SP 800-38D §8.3, hard cap enforced in Phase IV per design-review blocker B2), and the commitment's key-committing (not context-committing) property.
 
-### Added — Phase II (plan-02, PBKDF2 + passphrase-KDF unification)
+### Added — Phase II (PBKDF2 + passphrase-KDF unification)
 
 - **`MasterKey` branded type** (`ISecureBuffer & { readonly __brand: 'MasterKey' }`) — the 32-byte key that seeds `EnvelopeClient` (Phase IV) and `@de-otio/keyring`'s tier system. The brand prevents key-confusion at compile time (design-review blocker B8): passphrase-derived bytes cannot be handed to an AEAD primitive as a CEK without an explicit unbranding cast.
 - **`deriveMasterKeyFromPassphrase(passphrase, salt, params, options?)`** in `src/passphrase.ts` — unified, async, branded-return passphrase KDF with `AbortSignal` support. Discriminated-union `PassphraseKdfParams`:
@@ -40,7 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Argon2id migration (design-review B3 / plan §5 / §3.2) is a no-op.** chaoskb's `sodium-native`-backed Argon2 was extracted to `@noble/hashes/argon2` back in Phase B of plan-01 (see v0.1.0-alpha.1 entry below), so Phase II has no algorithm-implementation change on the Argon2 side — only the unified caller surface is new.
 - Runtime deps unchanged: `@noble/hashes` was already at the required version; `sodium-native` stays for `SecureBuffer`'s mlock/zero (Node-only, unchanged).
 
-### Added — Phase III (plan-02, SecureBuffer browser variant + runtime portability)
+### Added — Phase III (SecureBuffer browser variant + runtime portability)
 
 - **`SecureBufferBrowser`** in `src/secure-buffer.browser.ts` — strict-by-default `ISecureBuffer` implementation for runtimes without `mlock`. Constructor and factory methods require an explicit `{ insecureMemory: true }` acknowledgement; omitting the flag **throws** rather than silently degrading (design-review Q1 / chaoskb browser plugin threat model). Fresh `ArrayBuffer` per allocation — no pool aliasing. `fill(0)` on dispose (best-effort; documented limitation — V8 GC may relocate before the zero).
 - **`InsecureMemoryAck` type** exported from `src/secure-buffer.ts`. Node's `SecureBuffer` accepts it as an optional no-op second arg to `from` / `alloc` so portable code can pass the flag everywhere; runtime asymmetry is that Node ignores it and browser enforces it.
@@ -58,7 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `src/blob-id.ts` uses `getRandomBytes`.
 - No external API changes. The `node:crypto` imports are gone but consumers who relied only on the public exports see no difference.
 
-### Added — Phase IV (plan-02, EnvelopeClient algorithm selection + AES-GCM hard cap)
+### Added — Phase IV (EnvelopeClient algorithm selection + AES-GCM hard cap)
 
 - **`EnvelopeClient` algorithm selection.** Constructor gains an optional `algorithm?: Algorithm` option. Default remains `'XChaCha20-Poly1305'`; `'AES-256-GCM'` is available for interop with external systems. Decryption stays algorithm-agnostic — the envelope carries `enc.alg` and the client routes based on it, so a default-XChaCha client can still decrypt AES-GCM envelopes.
 - **`EnvelopeClient.forAesGcmInterop(options)`** named factory. The discoverable surface for AES-GCM (design-review blocker B9): the factory name signals the trade-off at the call-site. Mid-level consumers writing first-time code see `forAesGcmInterop` in IntelliSense and can investigate the per-key message cap before committing.
