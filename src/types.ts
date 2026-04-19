@@ -13,8 +13,28 @@ export interface ISecureBuffer {
   dispose(): void;
 }
 
-/** Supported AEAD algorithms. v0.1 ships XChaCha20-Poly1305 only. */
-export type Algorithm = 'XChaCha20-Poly1305';
+/**
+ * Supported AEAD algorithms.
+ *
+ * - `'XChaCha20-Poly1305'` — 192-bit nonce, effectively unbounded per-key
+ *   message budget. Pure-JS via `@noble/ciphers/chacha`. **Default** for
+ *   new envelopes (see {@link EnvelopeClient}).
+ * - `'AES-256-GCM'` — 96-bit nonce, per-key message budget bounded by the
+ *   birthday bound: NIST SP 800-38D §8.3 gives a collision probability of
+ *   ~n² / 2⁹⁷, with a hard cap of 2³² encryptions per key enforced at the
+ *   `EnvelopeClient` layer (design-review B2; Phase IV). Pure-JS via
+ *   `@noble/ciphers/aes`. Select explicitly when interoperating with
+ *   AES-GCM-only external systems or FIPS-constrained environments; do not
+ *   use as a default.
+ *
+ * Both algorithms share the envelope's HMAC-SHA256 key commitment, which
+ * defeats multi-key partitioning-oracle attacks (Len-Grubbs-Ristenpart
+ * 2021) by binding the master key to each ciphertext. The commitment is
+ * **key-committing**, not context-committing in the Bellare-Hoang sense
+ * (does not bind the nonce or plaintext independently); see SECURITY.md
+ * for the full threat-model statement.
+ */
+export type Algorithm = 'XChaCha20-Poly1305' | 'AES-256-GCM';
 
 /**
  * v1 envelope — JSON wire format with base64-encoded binary fields.

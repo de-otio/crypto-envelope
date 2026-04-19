@@ -7,7 +7,17 @@
  * may be reshaped more aggressively as we learn from consumers.
  */
 
-export { aeadEncrypt, aeadDecrypt, NONCE_LENGTH, TAG_LENGTH, type AeadResult } from './aead.js';
+export {
+  aeadEncrypt,
+  aeadDecrypt,
+  AES_GCM_NONCE_LENGTH,
+  KEY_LENGTH,
+  NONCE_LENGTH,
+  nonceLengthFor,
+  TAG_LENGTH,
+  XCHACHA_NONCE_LENGTH,
+  type AeadResult,
+} from './aead.js';
 export { deriveKey, deriveContentKey, deriveCommitKey } from './hkdf.js';
 export { computeCommitment, verifyCommitment } from './commitment.js';
 export { deriveFromPassphrase } from './argon2.js';

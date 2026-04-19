@@ -6,12 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Changed
+### Added — Phase I (plan-02, AES-256-GCM primitive)
 
-- **Minimum Node version bumped to 22.** Node 20 is no longer supported. CI matrix moves from `[20, 22]` to `[22, 24]` and all `setup-node` actions pin to `node-version: 22`.
-- TypeScript toolchain bumped to `~6.0`. `tsconfig.cjs.json` adds `ignoreDeprecations: "6.0"` for the still-required `moduleResolution: "Node10"` CJS build target.
+- **AES-256-GCM as a second AEAD algorithm** alongside XChaCha20-Poly1305. `Algorithm` union widens to `'XChaCha20-Poly1305' | 'AES-256-GCM'`. Implementation via `@noble/ciphers/aes`'s `gcm(key, nonce, aad)` — the same noble stack already shipping for XChaCha, no new runtime dependency.
+- `aeadEncrypt(alg, key, plaintext, aad)` / `aeadDecrypt(alg, key, nonce, ciphertext, tag, aad)` now take an explicit `alg` parameter (breaking change within the pre-1.0 alpha line — callers in this package already updated; chaoskb does not import the primitive directly).
+- `nonceLengthFor(alg)` helper returns 24 (XChaCha) or 12 (AES-GCM). Per-algorithm exports `XCHACHA_NONCE_LENGTH`, `AES_GCM_NONCE_LENGTH`, `KEY_LENGTH`, `TAG_LENGTH`.
+- NIST SP 800-38D Appendix B / McGrew-Viega AES-256-GCM test cases 13–16 added as Known-Answer Tests (`test/aead-aes-gcm-kats.test.ts`). Tamper detection (tag, ciphertext, AAD) asserted per vector.
+- Wycheproof adversarial vectors — 66 AES-256-GCM / 96-bit-IV / 128-bit-tag cases from [C2SP/wycheproof](https://github.com/C2SP/wycheproof) committed as a filtered snapshot under `test/vectors/aead/wycheproof-aes-256-gcm.json`. Covers short tags, all-zero IV, malformed encodings; every Wycheproof verdict (`valid`/`invalid`/`acceptable`) is honoured.
+- Existing AEAD test suite parameterised over both algorithms — round-trip, tamper detection on ciphertext/tag/AAD/nonce, key-length validation, empty-AAD handling, large payloads. Both algorithms pass identical invariants.
+- Cross-algorithm substitution rejection tests — an XChaCha ciphertext cannot be presented as AES-GCM and vice versa (defeated by nonce-width check; envelope layer further binds `alg` into AAD).
 
-_(Note: native `Uint8Array.prototype.toBase64` / `Uint8Array.fromBase64` APIs land in Node 24, not Node 22. The envelope boundary keeps the `Buffer.from(..., 'base64')` idiom for Node 22 compatibility; migration can happen when the supported-Node floor next bumps to 24.)_
+### Changed — Phase I
+
+- `envelope/v1.ts` routes through the new dispatch surface. v1 envelopes currently still produce XChaCha; Phase IV widens `EnvelopeClient` to select the AES-GCM path at encrypt time.
+- `NONCE_LENGTH` export remains as a `@deprecated` alias for `XCHACHA_NONCE_LENGTH` to keep any external callers compiling; removal scheduled for v0.3.
+- `Algorithm` type documents the 96-bit-vs-192-bit nonce trade-off, the per-key message bound for AES-GCM (2³² per NIST SP 800-38D §8.3, hard cap enforced in Phase IV per design-review blocker B2), and the commitment's key-committing (not context-committing) property.
 
 
 ## [0.1.0-alpha.1] - 2026-04-18
