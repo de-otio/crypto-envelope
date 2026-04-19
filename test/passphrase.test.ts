@@ -18,7 +18,10 @@ describe('deriveMasterKeyFromPassphrase', () => {
     warnSpy.mockRestore();
   });
 
-  describe('Argon2id branch', () => {
+  // Argon2id with t=3, m=64 MiB, p=1 is intentionally slow on pure-JS
+  // noble; two back-to-back derivations can exceed vitest's 5s default
+  // on slow CI runners. Raise the per-suite timeout.
+  describe('Argon2id branch', { timeout: 30_000 }, () => {
     it('returns a 32-byte MasterKey', async () => {
       const salt = randomBytes(16);
       const mk = await deriveMasterKeyFromPassphrase('hunter2', salt, { algorithm: 'argon2id' });
@@ -106,7 +109,7 @@ describe('deriveMasterKeyFromPassphrase', () => {
     });
   });
 
-  describe('AbortSignal', () => {
+  describe('AbortSignal', { timeout: 30_000 }, () => {
     it('throws synchronously if the signal is already aborted', async () => {
       const controller = new AbortController();
       controller.abort();
