@@ -22,3 +22,5 @@ export {
   upgradeToV2,
   downgradeToV1,
 } from './v2.js';
+
+export { rewrapEnvelope } from './rewrap.js';

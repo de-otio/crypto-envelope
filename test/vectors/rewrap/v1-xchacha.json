@@ -1,0 +1,15 @@
+{
+  "name": "v1 envelope, XChaCha20-Poly1305 — master-key rotation round-trip",
+  "wireVersion": 1,
+  "alg": "XChaCha20-Poly1305",
+  "oldMasterHex": "1111111111111111111111111111111111111111111111111111111111111111",
+  "newMasterHex": "2222222222222222222222222222222222222222222222222222222222222222",
+  "id": "b_rewrap_v1_xcha_0000",
+  "ts": "2026-04-19T00:00:00.000Z",
+  "kid": "default",
+  "payload": {
+    "type": "note",
+    "body": "v1 xchacha rewrap vector",
+    "tags": ["rotation", "v1"]
+  }
+}

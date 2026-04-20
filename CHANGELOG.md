@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0-alpha.2] - 2026-04-19
+
+### Added
+
+- **`rewrapEnvelope(oldEnv, oldMaster, newMaster)`** primitive for master-key rotation. Decrypts an existing envelope under `oldMaster`'s HKDF-derived `(cek, commitKey)` and re-encrypts the plaintext under `newMaster`'s derived keys. Preserves `v` (v1 stays v1, v2 stays v2), `id`, `ts`, `alg`, and `kid`; regenerates nonce, ciphertext, tag, and commitment. Synchronous — noble primitives are sync, and `@de-otio/keyring`'s `KeyRing.rotate()` wraps the call in a `Promise` for orchestration (bounded concurrency, `AbortSignal`, event emission). Error surface matches `decryptV1` (AEAD tag failure, truncated input, commitment mismatch); no plaintext is released on any failure path.
+- v2 envelopes are handled by downgrading to v1 via `downgradeToV1`, rewrapping through the v1 primitives, and upgrading back via `upgradeToV2`. Both wire formats describe the same cryptographic object (AAD bound with `v: 1` in either case), so routing v2 through v1 primitives avoids a parallel implementation path that could drift.
+- Test vectors under `test/vectors/rewrap/` covering the full (v1, v2) × (XChaCha20-Poly1305, AES-256-GCM) matrix. Each vector fixes master keys, `id`/`ts`/`kid`/`alg`/payload inputs; the test encrypts under `oldMaster`, rewraps to `newMaster`, decrypts back, and asserts the plaintext and identity fields round-trip. Byte-exact matching is not possible because rewrap regenerates a CSPRNG nonce each call.
+- Unit tests: same-master round-trip (ct/tag/commitment regenerate), different-master rotation (old master locked out, new master succeeds), AES-256-GCM path, v2 envelope round-trip, tamper detection (ct, id, commitment, truncation), wrong-old-master rejection, caller-owned master lifecycle.
+
+### Notes
+
+- `rewrapEnvelope` does **not** dispose `oldMaster` or `newMaster` — the caller owns their lifetimes. Any transient `Uint8Array` holding a derived key is zeroed in a `finally` block before return.
+- Consumed by `@de-otio/keyring@0.1.0-alpha.2`'s `KeyRing.rotate()` method.
+
 ## [0.2.0-alpha.1] - 2026-04-19
 
 Second pre-release. Implements plan-02 Phases I–IV — AES-256-GCM as a second AEAD algorithm, unified passphrase-KDF with `MasterKey` brand, strict-by-default browser `SecureBuffer`, and `EnvelopeClient` algorithm selection with the 2³² AES-GCM hard cap. The package now runs on any WebCrypto-compliant runtime (Node ≥22, modern browsers, Deno ≥2, Bun ≥1, Cloudflare Workers, Vercel Edge).

@@ -1,0 +1,17 @@
+{
+  "name": "v2 CBOR envelope, AES-256-GCM — master-key rotation round-trip",
+  "wireVersion": 2,
+  "alg": "AES-256-GCM",
+  "oldMasterHex": "7777777777777777777777777777777777777777777777777777777777777777",
+  "newMasterHex": "8888888888888888888888888888888888888888888888888888888888888888",
+  "id": "b_rewrap_v2_aesgcm_00",
+  "ts": "2026-04-19T03:00:00.000Z",
+  "kid": "aes-v2-kid",
+  "payload": {
+    "type": "note",
+    "body": "v2 cbor aes-gcm rewrap vector",
+    "rating": 4.5,
+    "draft": false,
+    "tags": ["rotation", "v2", "aes", "cbor"]
+  }
+}

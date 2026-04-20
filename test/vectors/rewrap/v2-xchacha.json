@@ -1,0 +1,16 @@
+{
+  "name": "v2 CBOR envelope, XChaCha20-Poly1305 — master-key rotation round-trip",
+  "wireVersion": 2,
+  "alg": "XChaCha20-Poly1305",
+  "oldMasterHex": "5555555555555555555555555555555555555555555555555555555555555555",
+  "newMasterHex": "6666666666666666666666666666666666666666666666666666666666666666",
+  "id": "b_rewrap_v2_xcha_0000",
+  "ts": "2026-04-19T02:00:00.000Z",
+  "kid": "v2-kid",
+  "payload": {
+    "type": "note",
+    "body": "v2 cbor xchacha rewrap vector",
+    "nested": { "a": 1, "b": [2, 3], "c": null },
+    "tags": ["rotation", "v2", "cbor"]
+  }
+}

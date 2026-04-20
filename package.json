@@ -1,6 +1,6 @@
 {
   "name": "@de-otio/crypto-envelope",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.2",
   "description": "Opinionated authenticated-encryption envelopes for TypeScript. XChaCha20-Poly1305 + AES-256-GCM AEAD + AAD binding + HMAC-SHA256 key commitment + RFC 8785 canonical JSON + Argon2id/PBKDF2 passphrase-KDF + SecureBuffer. Safe defaults that can't be turned off. Runs on Node, browsers (MV3), Deno, Bun, Cloudflare Workers.",
   "license": "MIT",
   "author": {

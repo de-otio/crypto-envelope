@@ -1,0 +1,16 @@
+{
+  "name": "v1 envelope, AES-256-GCM — master-key rotation round-trip",
+  "wireVersion": 1,
+  "alg": "AES-256-GCM",
+  "oldMasterHex": "3333333333333333333333333333333333333333333333333333333333333333",
+  "newMasterHex": "4444444444444444444444444444444444444444444444444444444444444444",
+  "id": "b_rewrap_v1_aesgcm_00",
+  "ts": "2026-04-19T01:00:00.000Z",
+  "kid": "aes-kid",
+  "payload": {
+    "type": "note",
+    "body": "v1 aes-gcm rewrap vector",
+    "count": 123,
+    "tags": ["rotation", "v1", "aes"]
+  }
+}

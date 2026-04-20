@@ -30,6 +30,7 @@ export {
   deserialize,
   upgradeToV2,
   downgradeToV1,
+  rewrapEnvelope,
   type EncryptV1Args,
 } from './envelope/index.js';
 export {
