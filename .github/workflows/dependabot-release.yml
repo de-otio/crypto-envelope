@@ -1,0 +1,28 @@
+# =============================================================================
+# Auto-release on Dependabot merge
+# =============================================================================
+# After a Dependabot PR auto-merges, bump the prerelease suffix
+# (0.3.0-alpha.1 → 0.3.0-alpha.2), tag, and create a GitHub Release.
+# The release event then fires publish.yml, which publishes to npm.
+# =============================================================================
+
+name: Auto-release on Dependabot merge
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # Fire only when the head commit ties to Dependabot. The `[skip ci]`
+    # marker on the version-bump commit prevents the release workflow from
+    # re-triggering itself.
+    if: |
+      !contains(github.event.head_commit.message, '[skip ci]') &&
+      (github.event.head_commit.author.username == 'dependabot[bot]' ||
+       contains(github.event.head_commit.message, 'dependabot[bot]'))
+    uses: de-otio/.github/.github/workflows/dependabot-release-on-bump.yml@main
+    secrets: inherit
