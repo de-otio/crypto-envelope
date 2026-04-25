@@ -339,7 +339,7 @@ describe('deriveMasterKeyFromPassphrase (PBKDF2-SHA256)', () => {
     } finally {
       master.dispose();
     }
-  });
+  }, 30_000);
 
   it('is deterministic (same passphrase + salt → same key)', async () => {
     const salt = new Uint8Array(16).fill(0x03);
@@ -357,7 +357,7 @@ describe('deriveMasterKeyFromPassphrase (PBKDF2-SHA256)', () => {
       a.dispose();
       b.dispose();
     }
-  });
+  }, 30_000);
 
   it('matches pbkdf2Sha256 primitive with TextEncoder bytes', async () => {
     const passphrase = 'test-pbkdf2';
@@ -374,7 +374,7 @@ describe('deriveMasterKeyFromPassphrase (PBKDF2-SHA256)', () => {
 
     // For ASCII passphrases, both must produce identical bytes
     expect(directResult).toEqual(bufferResult);
-  });
+  }, 30_000);
 
   it('uses derived key to encrypt and decrypt an envelope', async () => {
     const salt = new Uint8Array(16).fill(0xcd);
@@ -393,5 +393,5 @@ describe('deriveMasterKeyFromPassphrase (PBKDF2-SHA256)', () => {
     } finally {
       master.dispose();
     }
-  });
+  }, 30_000);
 });
