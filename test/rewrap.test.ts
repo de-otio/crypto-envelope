@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { rewrapEnvelope } from '../src/envelope/rewrap.js';
 import { decryptV1, encryptV1 } from '../src/envelope/v1.js';
 import { downgradeToV1, upgradeToV2 } from '../src/envelope/v2.js';
+import { AuthenticationFailedError } from '../src/errors.js';
 import { asMasterKey } from '../src/passphrase.js';
 import { deriveCommitKey, deriveContentKey } from '../src/primitives/hkdf.js';
 import { SecureBuffer } from '../src/secure-buffer.js';
@@ -231,7 +232,7 @@ describe('rewrapEnvelope — error surface', () => {
     };
 
     expect(() => rewrapEnvelope(tampered, oldMaster, newMaster)).toThrow(
-      'key commitment verification failed',
+      AuthenticationFailedError.MESSAGE,
     );
   });
 

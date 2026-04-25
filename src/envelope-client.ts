@@ -7,6 +7,7 @@ import {
   serializeV2,
   upgradeToV2,
 } from './envelope/index.js';
+import { EnvelopeError } from './errors.js';
 import { InMemoryMessageCounter, type MessageCounter, keyFingerprint } from './message-counter.js';
 import { deriveCommitKey, deriveContentKey } from './primitives/hkdf.js';
 import { SecureBuffer } from './secure-buffer.js';
@@ -31,15 +32,18 @@ export const AES_GCM_HARD_CAP = 2 ** 32;
  * Error thrown when the per-key AES-GCM message budget is exhausted.
  * The wrapped `fingerprint` identifies which master key is out of
  * budget; the consumer is expected to rotate and retry.
+ *
+ * Extends {@link EnvelopeError} for a consistent `code` discriminator.
+ * code: `NONCE_BUDGET_EXCEEDED`
  */
-export class NonceBudgetExceeded extends Error {
-  readonly code = 'NONCE_BUDGET_EXCEEDED';
+export class NonceBudgetExceeded extends EnvelopeError {
   readonly fingerprint: Uint8Array;
   readonly counter: number;
   readonly algorithm: Algorithm;
 
   constructor(fingerprint: Uint8Array, counter: number, algorithm: Algorithm) {
     super(
+      'NONCE_BUDGET_EXCEEDED',
       `per-key nonce budget exhausted for ${algorithm}: counter=${counter}, cap=${AES_GCM_HARD_CAP}. Rotate the master key and re-encrypt pending payloads.`,
     );
     this.name = 'NonceBudgetExceeded';
