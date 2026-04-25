@@ -6,26 +6,146 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Changed
+## [0.3.0-alpha.1] - 2026-04-25
 
-- **Browser portability (Track T1):** eliminated `Buffer` global usage from all
-  production crypto paths. `src/envelope/v1.ts`, `src/envelope/v2.ts`,
-  `src/passphrase.ts`, and `src/primitives/argon2.ts` no longer call
-  `Buffer.from` or `Buffer.toString`. The library now genuinely runs on
-  WebCrypto-only runtimes (browsers, MV3 extensions, Deno, Bun, Cloudflare
-  Workers) without a Buffer polyfill.
-- New `src/internal/base64.ts` module — `b64encode` / `b64decode` built on
-  `globalThis.btoa` / `globalThis.atob` (Node ≥16, all modern browsers). Output
-  is byte-identical to `Buffer.from(x).toString('base64')` /
-  `Buffer.from(x, 'base64')`, so wire-format bytes are unchanged.
-- New test `test/internal-base64.test.ts` — RFC 4648 §10 vectors, 1–64 byte
-  range round-trips, byte-identity against `Buffer` reference, invalid-input
-  rejection.
-- New test `test/browser-portability.test.ts` — stubs `globalThis.Buffer =
-  undefined` and exercises `EnvelopeClient.encrypt`/`decrypt` for both
-  `format: 'v1'` and `format: 'v2'`, both XChaCha20-Poly1305 and AES-256-GCM,
-  `deriveMasterKeyFromPassphrase` with Argon2id and PBKDF2-SHA256, and the
-  `encryptV1`/`decryptV1` low-level path.
+Third pre-release. Closes the v1.0-readiness blockers identified in the
+2026-04-25 design audit: browser portability, typed error taxonomy with
+partitioning-oracle defense, deterministic envelope-level test vectors, the
+wire-format specification, MessageCounter integration on `rewrapEnvelope`,
+and AES-256-GCM parity in envelope-layer test coverage. Wire format is
+unchanged — base64 output is byte-identical to 0.2.x, vectors decrypt
+both forward and back.
+
+Installs as `@de-otio/crypto-envelope@alpha`. The `@latest` tag remains
+unused until chaoskb ships a production release on this line.
+
+**No breaking changes for chaoskb:** `rewrapEnvelope`'s 3-arg sync signature
+is preserved; the optional `MessageCounter` is a 4th positional param that
+returns a `Promise`. Existing `try { ... } catch (e) { ... }` patterns
+still catch the new typed errors (they extend `Error`).
+
+### Added — Track T1 (browser portability)
+
+- `src/internal/base64.ts` with `b64encode` / `b64decode` built on
+  `globalThis.btoa` / `globalThis.atob`. Output byte-identical to the
+  prior `Buffer`-based path.
+- `test/browser-portability.test.ts` — stubs `globalThis.Buffer = undefined`
+  before importing the library and round-trips `EnvelopeClient.encrypt` /
+  `decrypt` (both v1/v2, both XChaCha/AES-GCM), `deriveMasterKeyFromPassphrase`
+  (Argon2id and PBKDF2), and the low-level `encryptV1`/`decryptV1` path.
+- `test/internal-base64.test.ts` — RFC 4648 §10 vectors, 1–64 byte ranges,
+  byte-identity against `Buffer` reference, invalid-input rejection.
+
+### Changed — Track T1
+
+- `Buffer` global eliminated from `src/envelope/v1.ts`, `src/envelope/v2.ts`,
+  `src/passphrase.ts`, `src/primitives/argon2.ts`. The library now genuinely
+  runs on WebCrypto-only runtimes (browsers, MV3 extensions, Deno, Bun,
+  Cloudflare Workers, Vercel Edge) without a Buffer polyfill — previously a
+  documented but empirically-broken claim.
+
+### Added — Track T4 (typed error taxonomy)
+
+- `src/errors.ts` with a hierarchy under `EnvelopeError`:
+  `AuthenticationFailedError`, `UnsupportedAlgorithmError`,
+  `UnsupportedVersionError`, `MalformedEnvelopeError`,
+  `TruncatedCiphertextError`. Each class carries a stable `code` discriminator
+  for downstream switch statements. `NonceBudgetExceeded` re-exported from the
+  same module for consistency.
+- **Partitioning-oracle defense** — wrong CEK, wrong commit key, tampered
+  ciphertext, tampered AAD, and tampered commitment all throw
+  `AuthenticationFailedError` with byte-identical error message
+  (`"authentication failed; envelope is wrong key or tampered"`). Tested
+  explicitly in `test/errors.test.ts`.
+- All error classes exported from the main entry.
+
+### Changed — Track T4
+
+- Plain `throw new Error(...)` replaced with typed errors throughout
+  `src/envelope/v1.ts`, `v2.ts`, `rewrap.ts`, `src/envelope-client.ts`, and
+  `src/primitives/aead.ts`. Wire format and which inputs cause which failures
+  unchanged — only the thrown class is observable.
+
+### Added — Track T5 (rewrap MessageCounter integration)
+
+- `rewrapEnvelope(old, oldM, newM, counter?)` — optional 4th positional
+  parameter. When provided and the algorithm is AES-256-GCM, the counter is
+  incremented per call; if the increment would exceed `AES_GCM_HARD_CAP`,
+  `NonceBudgetExceeded` is thrown. XChaCha20-Poly1305 is unaffected (its
+  birthday bound is comfortable).
+- The 3-arg synchronous form is unchanged for backward compat with chaoskb's
+  `KeyRing.rotate()`. The 4-arg form returns a `Promise` because
+  `MessageCounter.increment` is async (durable backends).
+- Negative tests in `test/rewrap.test.ts`: tampered `oldEnvelope.enc.alg`
+  rejected, post-rewrap AAD tamper still rejected at decrypt, wrong old
+  master rejected, counter increments correctly, cap-exceeded throws.
+
+### Added — Track T7 (envelope-layer test backfill)
+
+- Full AES-256-GCM parity coverage in `test/envelope-v1.test.ts` — round-trip,
+  verify-after-encrypt, individual-field tamper rejection on `ct`, `nonce`,
+  `tag`, `commit`, `kid`, `alg`, `id`, plus wrong-key cases.
+- Tamper-rejection coverage added to `test/envelope-v2.test.ts` for both
+  algorithms (previously absent).
+- Cross-version tamper test: encrypt v1 → upgrade to v2 → mutate v2 byte →
+  downgrade to v1 → decrypt MUST throw, proving the AAD chain holds across
+  re-encoding.
+
+### Added — Track T3 (envelope-level test vectors + ./test-vectors export)
+
+- 59 deterministic vector files covering
+  `{XChaCha20-Poly1305, AES-256-GCM} × {kid='default', kid='alt'} × {empty,
+  single ASCII, 1KB, nested JSON, unicode, numbers}` for both wire formats.
+- Inline KATs extracted from `test/{hkdf,commitment,canonical-json}.test.ts`
+  into `test/vectors/{hkdf,commitment,canonical-json}/` so downstream forks
+  can consume them as JSON.
+- `test/envelope-vectors.test.ts` — pinning tests verifying re-encryption
+  produces byte-identical output, decryption yields the original plaintext,
+  and one-byte mutations of `ct`, `commit`, `kid`, `alg`, or `id` cause
+  decrypt to throw.
+- `tools/regen-vectors.ts` — deterministic vector regenerator. Patches
+  `globalThis.crypto.getRandomValues` for the duration of generation to pin
+  nonces. Reproducible: running it twice produces a zero-byte diff.
+- New `./test-vectors` subpath export in `package.json` (ESM `index.js` +
+  CJS `index.cjs`). Vector JSON files included in the published tarball
+  (~80KB) so downstream implementations can verify interoperability against
+  the exact bytes this library produces.
+
+### Added — Track T6 (README + low-level export fixes)
+
+- `deriveContentKey` and `deriveCommitKey` re-exported from the main entry.
+  The README quick-start `import { deriveContentKey, deriveCommitKey } from
+  '@de-otio/crypto-envelope'` now compiles — previously these were only on
+  the `/primitives` subpath.
+- `test/readme-examples.test.ts` runs each README quick-start verbatim so
+  drift is caught in CI.
+
+### Added — Track T2 (wire-format specification)
+
+- `doc/envelope-spec.md` — field-by-field wire-format specification covering
+  v1 JSON, v2 CBOR, AAD construction (and the `v: 1` invariant), HKDF info
+  strings, commitment derivation, and a worked example. A third party can
+  reimplement v1 and v2 from this document alone.
+- `doc/crypto.md` — algorithm choices with academic citations
+  (`draft-irtf-cfrg-xchacha`, NIST SP 800-38D, Len-Grubbs-Ristenpart USENIX
+  2021 for key commitment, RFC 5869, RFC 9106 + OWASP 2023 for Argon2id,
+  RFC 8018 for PBKDF2, RFC 8785 for canonical JSON, libsodium for
+  `SecureBuffer`).
+- `doc/tier-upgrade.md` — v1↔v2 conversion semantics; explains why AAD pins
+  `v: 1` and what that means for the un-bound wire-format `v` field.
+- `doc/mistakes-prevented.md` — 17 mistake classes mapped to source code
+  paths that defend against each.
+- `SECURITY.md` updated to note that the wire-format `v` field is not
+  AAD-bound but the cryptographic object is identical across v1/v2.
+
+### Notes
+
+- Total test count: 646 passing across 22 test files (+ 1 pre-existing
+  bundler-smoke test that requires `npm run build` first; CI handles this).
+- Wire format unchanged. Vectors generated against 0.2.x decrypt under
+  0.3.0-alpha.1 byte-identically, and vice versa.
+- chaoskb does not need any changes to consume this release. Adopting the
+  new error classes for switch-on-failure is purely opportunistic.
 
 ## [0.2.0-alpha.2] - 2026-04-19
 
