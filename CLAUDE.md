@@ -4,9 +4,11 @@ Guidance for Claude (and other AI coding agents) working in this repository.
 
 ## What this project is
 
-`@de-otio/crypto-envelope` — a TypeScript library that produces and verifies authenticated-encryption envelopes. Opinionated defaults, safe-by-construction API, published test vectors. Serves internal de-otio projects (chaoskb, trellis) as its primary purpose; public for transparency and reference.
+`@de-otio/crypto-envelope` — a TypeScript library that produces and verifies authenticated-encryption envelopes. Opinionated defaults, safe-by-construction API, published test vectors.
 
-**This is a cryptographic library. Treat every change as high-stakes.** A bug here translates directly to data loss or confidentiality breach in every downstream consumer.
+**Origin and scope.** This is [chaoskb](https://github.com/de-otio/chaoskb)'s encryption layer, extracted into a standalone package. Design decisions (key-committing AEAD, RFC 8785 canonical AAD, `kid` routing, SecureBuffer, verify-after-encrypt) trace back to chaoskb's threat model (single-user-multi-device, untrusted server, canary verification). The package is published publicly for transparency, audit, and forking — not pitched as a general-purpose library, and not assumed to fit other consumers' threat models. Design changes should be evaluated against whether they serve chaoskb; a change that helps a hypothetical second consumer at chaoskb's expense should be rejected.
+
+**This is a cryptographic library. Treat every change as high-stakes.** A bug here translates directly to data loss or confidentiality breach in chaoskb (and any forks).
 
 ## Review priorities (in order)
 

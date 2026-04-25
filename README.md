@@ -2,7 +2,7 @@
 
 **Opinionated authenticated-encryption envelopes for TypeScript.** Makes best-practice cryptography accessible to application developers while preventing common implementation mistakes (nonce reuse, skipped AAD, weak KDFs, silent decryption failure, …).
 
-> **Status: pre-release (`0.2.0-alpha`).** AES-256-GCM as a second AEAD, unified passphrase-KDF with branded `MasterKey`, strict-by-default browser `SecureBuffer`, and per-key `MessageCounter` with a 2³² AES-GCM hard cap landed in this line. Internally consumed by [chaoskb](https://github.com/de-otio/chaoskb) and [trellis](https://github.com/de-otio/trellis). The `@latest` tag is reserved until both of those ship production releases; install the alpha explicitly. The wire format is considered mutable between `0.x` minors until then.
+> **Status: pre-release (`0.2.0-alpha`).** AES-256-GCM as a second AEAD, unified passphrase-KDF with branded `MasterKey`, strict-by-default browser `SecureBuffer`, and per-key `MessageCounter` with a 2³² AES-GCM hard cap landed in this line. Extracted from [chaoskb](https://github.com/de-otio/chaoskb) — this is chaoskb's encryption layer, packaged separately for audit and reuse. The `@latest` tag is reserved until chaoskb ships a production release; install the alpha explicitly. The wire format is considered mutable between `0.x` minors until then.
 
 ## What it is
 
@@ -109,7 +109,7 @@ Published test vectors cover RFC 8785 canonicalisation, RFC 5869 Appendix A.1 HK
 
 This is a small-organisation, primarily-internal project. Honest expectations:
 
-- **Maintained for** [chaoskb](https://github.com/de-otio/chaoskb) and [trellis](https://github.com/de-otio/trellis) as long as those projects use it.
+- **This is [chaoskb](https://github.com/de-otio/chaoskb)'s encryption layer, extracted.** Design decisions are made for chaoskb first; other use cases are best-effort.
 - **Published publicly for transparency and reference**, not as a supported product with SLAs.
 - **Forking encouraged.** MIT is permissive on purpose. Wire format + test vectors are designed so a fork can remain interoperable.
 - **Security issues are responded to on best-effort.** See [SECURITY.md](./SECURITY.md) for the disclosure process.
