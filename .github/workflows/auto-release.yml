@@ -1,21 +1,17 @@
 # =============================================================================
 # Auto-release on Dependabot merge
 # =============================================================================
-# After a Dependabot PR auto-merges, bump the prerelease suffix
-# (0.3.0-alpha.1 → 0.3.0-alpha.2), tag, and create a GitHub Release.
-# The release event then fires publish.yml, which publishes to npm.
+# After a Dependabot PR auto-merges to main, call the org-shared release
+# workflow to bump the version, tag, and create a GitHub Release. The
+# release event then fires publish.yml, which publishes to npm.
 #
-# Structure: a `guard` job evaluates the Dependabot-author + skip-ci
-# conditions and emits a boolean output; the `release` job depends on
-# `guard` and only runs the reusable workflow when that output is true.
-#
-# We can't put the `if:` directly on the `uses:` job because of a
-# GitHub Actions limitation: when a reusable-workflow caller has a
-# job-level `if:` that evaluates to false based purely on event context
-# (rather than on a `needs:` output), the workflow can fail at startup
-# with "workflow file issue" instead of cleanly skipping. The
-# `needs:`-based dependency forces the if-condition to be evaluated
-# *after* the guard job completes, which is the supported path.
+# Mirrors the structure of the sibling `dependabot-handler.yml`, which
+# is the same pattern (reusable-workflow caller from de-otio/.github,
+# gated on Dependabot authorship) and registers correctly. The previous
+# version of this file used a multi-line `|` block scalar for the `if:`
+# expression on the `uses:` job; GitHub's workflow parser rejected
+# every push with a 0s "workflow file issue" failure. Single-line `if:`
+# parses correctly.
 # =============================================================================
 
 name: Auto-release on Dependabot merge
@@ -24,28 +20,11 @@ on:
   push:
     branches: [main]
 
-jobs:
-  guard:
-    runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
-    outputs:
-      is-dependabot: ${{ steps.check.outputs.is-dependabot }}
-    steps:
-      - id: check
-        env:
-          AUTHOR: ${{ github.event.head_commit.author.username }}
-          MSG: ${{ github.event.head_commit.message }}
-        run: |
-          if [ "$AUTHOR" = "dependabot[bot]" ] || [[ "$MSG" == *"dependabot[bot]"* ]]; then
-            echo "is-dependabot=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is-dependabot=false" >> "$GITHUB_OUTPUT"
-          fi
+permissions:
+  contents: write
 
+jobs:
   release:
-    needs: guard
-    if: ${{ needs.guard.outputs.is-dependabot == 'true' }}
-    permissions:
-      contents: write
+    if: github.event.head_commit.author.username == 'dependabot[bot]' && !contains(github.event.head_commit.message, '[skip ci]')
     uses: de-otio/.github/.github/workflows/dependabot-release-on-bump.yml@main
     secrets: inherit
