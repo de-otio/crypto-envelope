@@ -54,6 +54,8 @@
   "browser": {
     "./dist/secure-buffer.js": "./dist/secure-buffer.browser.js",
     "./dist-cjs/secure-buffer.js": "./dist/secure-buffer.browser.js",
+    "./dist/internal/constant-time.js": "./dist/internal/constant-time.browser.js",
+    "./dist-cjs/internal/constant-time.js": "./dist/internal/constant-time.browser.js",
     "sodium-native": false
   },
   "files": [

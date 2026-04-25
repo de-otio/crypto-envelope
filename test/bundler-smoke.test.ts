@@ -7,10 +7,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 /**
  * Phase III bundler smoke test.
  *
- * Verifies the `package.json` `"browser"` field redirects the
- * sodium-native-backed `secure-buffer.js` to `secure-buffer.browser.js`
- * and stubs the `sodium-native` import to `false` so no bytes from the
- * Node-only native addon land in a browser bundle.
+ * Verifies the `package.json` `"browser"` field redirects:
+ *   - sodium-native-backed `secure-buffer.js` → `secure-buffer.browser.js`,
+ *     and stubs `sodium-native` to `false`, so no Node-only native-addon
+ *     bytes land in a browser bundle;
+ *   - `internal/constant-time.js` → `internal/constant-time.browser.js`,
+ *     so `node:crypto.timingSafeEqual` (a Node-only built-in) is not
+ *     pulled into a browser bundle and the pure-JS XOR-accumulate fallback
+ *     is used instead.
  *
  * Runs `esbuild --platform=browser --bundle` against a synthetic entry
  * that imports the full `@de-otio/crypto-envelope` surface, then
@@ -81,6 +85,13 @@ globalThis.__ce = {
     expect(bundle).not.toMatch(/sodium_memzero/);
     expect(bundle).not.toMatch(/sodium-native/);
     expect(bundle).not.toMatch(/\.node['"]/); // no .node native-addon file references
+
+    // Forbidden: `node:crypto.timingSafeEqual` is a Node-only built-in.
+    // The browser-field swap must redirect `internal/constant-time.js`
+    // to `internal/constant-time.browser.js`, so neither the import
+    // specifier nor the symbol should appear anywhere in the bundle.
+    expect(bundle).not.toMatch(/['"]node:crypto['"]/);
+    expect(bundle).not.toMatch(/timingSafeEqual/);
 
     // Expected: the browser SecureBuffer's sentinel error message is in
     // the bundle (proves the browser variant was substituted in).

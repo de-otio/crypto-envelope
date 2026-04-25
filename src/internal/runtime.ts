@@ -4,10 +4,11 @@
  * - `getRandomBytes`: WebCrypto `crypto.getRandomValues`. Available on
  *   Node ≥20, every modern browser, Deno, Bun, Cloudflare Workers,
  *   Vercel Edge. No `node:crypto` dependency.
- * - `constantTimeEqual`: pure-JS constant-time byte-equality. Replaces
- *   `node:crypto.timingSafeEqual` for browser portability. Compiles to
- *   the same XOR-accumulate pattern every audited implementation uses
- *   (@noble/hashes `equalBytes`, libsodium `sodium_memcmp`).
+ *
+ * `constantTimeEqual` is split into platform-specific files
+ * (`constant-time.ts` for Node, `constant-time.browser.ts` for browsers)
+ * so the Node path can use `node:crypto.timingSafeEqual`; import it from
+ * `./constant-time.js`.
  */
 
 /**
@@ -32,22 +33,4 @@ export function getRandomBytes(length: number): Uint8Array {
   const out = new Uint8Array(length);
   crypto.getRandomValues(out);
   return out;
-}
-
-/**
- * Constant-time byte-equality. Returns `false` immediately on length
- * mismatch (this is a known information leak about message length but
- * does not reveal byte contents — matching `node:crypto.timingSafeEqual`
- * behaviour).
- *
- * Pure-JS; runs everywhere. Uses XOR-accumulate so the loop touches every
- * byte regardless of the first mismatch position.
- */
-export function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= (a[i] as number) ^ (b[i] as number);
-  }
-  return diff === 0;
 }

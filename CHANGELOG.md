@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- `constantTimeEqual` split into platform-specific files. The Node path
+  (`src/internal/constant-time.ts`) now delegates to
+  `node:crypto.timingSafeEqual` — a C primitive — instead of a pure-JS
+  loop, eliminating V8-JIT not-contractually-constant-time risk on Node.
+  The browser path (`src/internal/constant-time.browser.ts`) keeps the
+  XOR-accumulate fallback. Runtime behaviour is identical at the API
+  boundary; wire format unchanged.
+- `package.json` `"browser"` field extended to redirect
+  `internal/constant-time.js` → `internal/constant-time.browser.js` for
+  both ESM and CJS builds.
+
+### Added
+
+- `test/bundler-smoke.test.ts` now asserts that browser bundles contain
+  no `node:crypto` import and no `timingSafeEqual` reference, so the
+  browser-field swap is a static guarantee, not a convention.
+
 ## [0.3.0-alpha.1] - 2026-04-25
 
 Third pre-release. Closes the v1.0-readiness blockers identified in the

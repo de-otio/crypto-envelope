@@ -1,6 +1,6 @@
 import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 } from '@noble/hashes/sha2.js';
-import { constantTimeEqual } from '../internal/runtime.js';
+import { constantTimeEqual } from '../internal/constant-time.js';
 
 const ENCODER = new TextEncoder();
 
