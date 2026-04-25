@@ -27,11 +27,9 @@ describe('README quick-start examples', () => {
 
   it('passphrase unlock with Argon2id (README §Passphrase unlock)', async () => {
     const salt = crypto.getRandomValues(new Uint8Array(16));
-    const masterKey = await deriveMasterKeyFromPassphrase(
-      'correct horse battery staple',
-      salt,
-      { algorithm: 'argon2id' },
-    );
+    const masterKey = await deriveMasterKeyFromPassphrase('correct horse battery staple', salt, {
+      algorithm: 'argon2id',
+    });
 
     using client = new EnvelopeClient({ masterKey });
     const wire = await client.encrypt({ ok: true });
