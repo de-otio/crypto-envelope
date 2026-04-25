@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-25
+
+First stable release on the 0.3.x line. Promotes 0.3.0-alpha.1 to GA and
+adds a constant-time-comparison hardening change. The bulk of the change
+set (browser portability, typed error taxonomy with partitioning-oracle
+defense, deterministic envelope-level test vectors, wire-format
+specification, MessageCounter integration on `rewrapEnvelope`, AES-256-GCM
+parity in envelope-layer test coverage) is described in the
+[0.3.0-alpha.1] entry below and ships unchanged. Wire format
+byte-identical to 0.2.x.
+
+Installs as `@de-otio/crypto-envelope@latest`.
+
 ### Changed
 
 - `constantTimeEqual` split into platform-specific files. The Node path
