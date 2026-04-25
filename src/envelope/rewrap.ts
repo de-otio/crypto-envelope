@@ -1,4 +1,6 @@
+import { AES_GCM_HARD_CAP, NonceBudgetExceeded } from '../envelope-client.js';
 import { MalformedEnvelopeError } from '../errors.js';
+import { type MessageCounter, keyFingerprint } from '../message-counter.js';
 import { deriveCommitKey, deriveContentKey } from '../primitives/hkdf.js';
 import type { AnyEnvelope, MasterKey } from '../types.js';
 import { decryptV1, encryptV1 } from './v1.js';
@@ -46,11 +48,19 @@ import { downgradeToV1, upgradeToV2 } from './v2.js';
  * allocated on the hot path, so the only mlock'd memory in play is the
  * two masters, which the caller keeps live across many rewraps.
  *
- * ## Synchronous
+ * ## Synchronous (no counter) / Async (with counter)
  *
- * Not `async`. The underlying noble AEAD primitives are synchronous.
- * `@de-otio/keyring` wraps this call in a `Promise` for orchestration
- * (batching, abort-signal propagation, event emission).
+ * Without a `counter`, the function is synchronous — the underlying
+ * noble AEAD primitives are synchronous. `@de-otio/keyring` wraps this
+ * call in a `Promise` for orchestration (batching, abort-signal
+ * propagation, event emission).
+ *
+ * When a `MessageCounter` is supplied the function returns a
+ * `Promise<AnyEnvelope>` so it can await the async counter increment
+ * before proceeding. This overload is needed only for AES-256-GCM bulk
+ * rotation where the 2³² nonce cap must be enforced across process
+ * restarts; XChaCha20-Poly1305 still runs synchronously when no counter
+ * is passed.
  *
  * ## v2 handling
  *
@@ -65,10 +75,72 @@ import { downgradeToV1, upgradeToV2 } from './v2.js';
  * @param oldEnvelope The envelope to rewrap. v1 or v2.
  * @param oldMaster The master key `oldEnvelope` is currently encrypted under.
  * @param newMaster The master key to re-encrypt under.
- * @returns A new envelope with the same `v`, `id`, `ts`, `alg`, `kid`
- *   and a freshly-generated nonce/ct/tag/commitment.
+ * @param counter Optional per-key message counter. When provided **and** the
+ *   re-encrypted envelope uses `AES-256-GCM`, the counter is incremented once
+ *   per call and `NonceBudgetExceeded` is thrown if the resulting count would
+ *   exceed {@link AES_GCM_HARD_CAP} (2³²). Ignored for XChaCha20-Poly1305
+ *   (192-bit nonce has no practical cap). This parameter is purely additive —
+ *   existing callers that omit it continue to work identically and the
+ *   function returns `AnyEnvelope` synchronously.
  */
 export function rewrapEnvelope(
+  oldEnvelope: AnyEnvelope,
+  oldMaster: MasterKey,
+  newMaster: MasterKey,
+): AnyEnvelope;
+export function rewrapEnvelope(
+  oldEnvelope: AnyEnvelope,
+  oldMaster: MasterKey,
+  newMaster: MasterKey,
+  counter: MessageCounter,
+): Promise<AnyEnvelope>;
+export function rewrapEnvelope(
+  oldEnvelope: AnyEnvelope,
+  oldMaster: MasterKey,
+  newMaster: MasterKey,
+  counter?: MessageCounter,
+): AnyEnvelope | Promise<AnyEnvelope> {
+  if (counter !== undefined) {
+    return rewrapWithCounter(oldEnvelope, oldMaster, newMaster, counter);
+  }
+  return rewrapSync(oldEnvelope, oldMaster, newMaster);
+}
+
+async function rewrapWithCounter(
+  oldEnvelope: AnyEnvelope,
+  oldMaster: MasterKey,
+  newMaster: MasterKey,
+  counter: MessageCounter,
+): Promise<AnyEnvelope> {
+  // Determine the algorithm from the old envelope so we can decide
+  // whether to enforce the AES-GCM budget before re-encrypting.
+  const alg = oldEnvelope.enc.alg;
+
+  if (alg === 'AES-256-GCM') {
+    // Derive the new commit key just to compute the fingerprint for the
+    // counter lookup — it will be re-derived (and zeroed) inside
+    // rewrapSync. This transient derivation uses the newMaster because
+    // the counter tracks usage of the destination key.
+    const newMasterBytes = new Uint8Array(newMaster.buffer);
+    const newCommit = deriveCommitKey(newMasterBytes);
+    const fp = keyFingerprint(newCommit);
+    newCommit.fill(0);
+    // newMasterBytes is a copy of the SecureBuffer contents; do not zero
+    // it here — rewrapSync needs to re-read newMaster.buffer below.
+    // (The zeroing of newMasterBytes here would be incorrect since it's
+    // a separate copy; each Uint8Array(sb.buffer) call makes a fresh
+    // copy, so no aliasing issue.)
+
+    const next = await counter.increment(fp);
+    if (next > AES_GCM_HARD_CAP) {
+      throw new NonceBudgetExceeded(fp, next, alg);
+    }
+  }
+
+  return rewrapSync(oldEnvelope, oldMaster, newMaster);
+}
+
+function rewrapSync(
   oldEnvelope: AnyEnvelope,
   oldMaster: MasterKey,
   newMaster: MasterKey,
