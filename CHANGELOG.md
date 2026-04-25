@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Browser portability (Track T1):** eliminated `Buffer` global usage from all
+  production crypto paths. `src/envelope/v1.ts`, `src/envelope/v2.ts`,
+  `src/passphrase.ts`, and `src/primitives/argon2.ts` no longer call
+  `Buffer.from` or `Buffer.toString`. The library now genuinely runs on
+  WebCrypto-only runtimes (browsers, MV3 extensions, Deno, Bun, Cloudflare
+  Workers) without a Buffer polyfill.
+- New `src/internal/base64.ts` module — `b64encode` / `b64decode` built on
+  `globalThis.btoa` / `globalThis.atob` (Node ≥16, all modern browsers). Output
+  is byte-identical to `Buffer.from(x).toString('base64')` /
+  `Buffer.from(x, 'base64')`, so wire-format bytes are unchanged.
+- New test `test/internal-base64.test.ts` — RFC 4648 §10 vectors, 1–64 byte
+  range round-trips, byte-identity against `Buffer` reference, invalid-input
+  rejection.
+- New test `test/browser-portability.test.ts` — stubs `globalThis.Buffer =
+  undefined` and exercises `EnvelopeClient.encrypt`/`decrypt` for both
+  `format: 'v1'` and `format: 'v2'`, both XChaCha20-Poly1305 and AES-256-GCM,
+  `deriveMasterKeyFromPassphrase` with Argon2id and PBKDF2-SHA256, and the
+  `encryptV1`/`decryptV1` low-level path.
+
 ## [0.2.0-alpha.2] - 2026-04-19
 
 ### Added

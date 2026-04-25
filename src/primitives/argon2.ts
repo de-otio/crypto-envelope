@@ -32,7 +32,7 @@ const ARGON2_OUTPUT_LENGTH = 32;
  * NFC-normalise before calling.
  */
 export function deriveFromPassphrase(passphrase: string, salt: Uint8Array): ISecureBuffer {
-  const passphraseBytes = Buffer.from(passphrase, 'utf8');
+  const passphraseBytes = new TextEncoder().encode(passphrase);
   let derived: Uint8Array | undefined;
 
   try {

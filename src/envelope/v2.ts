@@ -1,5 +1,6 @@
 import { decode, encode } from 'cborg';
 
+import { b64decode, b64encode } from '../internal/base64.js';
 import type { Algorithm, AnyEnvelope, EnvelopeV1, EnvelopeV2 } from '../types.js';
 import { deserializeV1 } from './v1.js';
 
@@ -95,8 +96,8 @@ export function upgradeToV2(v1: EnvelopeV1): EnvelopeV2 {
     enc: {
       alg: v1.enc.alg,
       kid: v1.enc.kid,
-      ct: new Uint8Array(Buffer.from(v1.enc.ct, 'base64')),
-      commit: new Uint8Array(Buffer.from(v1.enc.commit, 'base64')),
+      ct: b64decode(v1.enc.ct),
+      commit: b64decode(v1.enc.commit),
     },
   };
 }
@@ -110,9 +111,9 @@ export function downgradeToV1(v2: EnvelopeV2): EnvelopeV1 {
     enc: {
       alg: v2.enc.alg,
       kid: v2.enc.kid,
-      ct: Buffer.from(v2.enc.ct).toString('base64'),
+      ct: b64encode(v2.enc.ct),
       'ct.len': v2.enc.ct.length,
-      commit: Buffer.from(v2.enc.commit).toString('base64'),
+      commit: b64encode(v2.enc.commit),
     },
   };
 }

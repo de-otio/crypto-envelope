@@ -1,6 +1,7 @@
 import { constructAAD } from '../aad.js';
 import { generateBlobId } from '../blob-id.js';
 import { canonicalJson } from '../canonical-json.js';
+import { b64decode, b64encode } from '../internal/base64.js';
 import { constantTimeEqual } from '../internal/runtime.js';
 import { TAG_LENGTH, aeadDecrypt, aeadEncrypt, nonceLengthFor } from '../primitives/aead.js';
 import { computeCommitment, verifyCommitment } from '../primitives/commitment.js';
@@ -82,9 +83,9 @@ export function encryptV1(args: EncryptV1Args): EnvelopeV1 {
     enc: {
       alg,
       kid,
-      ct: Buffer.from(rawCt).toString('base64'),
+      ct: b64encode(rawCt),
       'ct.len': rawCt.length,
-      commit: Buffer.from(commitment).toString('base64'),
+      commit: b64encode(commitment),
     },
   };
 }
@@ -116,7 +117,7 @@ export function decryptV1(
     throw new Error(`unsupported algorithm: ${envelope.enc.alg}`);
   }
 
-  const rawCt = new Uint8Array(Buffer.from(envelope.enc.ct, 'base64'));
+  const rawCt = b64decode(envelope.enc.ct);
 
   const nonceLen = nonceLengthFor(envelope.enc.alg);
   const minLen = nonceLen + TAG_LENGTH;
@@ -129,7 +130,7 @@ export function decryptV1(
     );
   }
 
-  const expectedCommit = new Uint8Array(Buffer.from(envelope.enc.commit, 'base64'));
+  const expectedCommit = b64decode(envelope.enc.commit);
   if (!verifyCommitment(commitKey, envelope.id, rawCt, expectedCommit)) {
     throw new Error('key commitment verification failed');
   }
