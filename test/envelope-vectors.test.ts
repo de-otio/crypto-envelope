@@ -23,6 +23,7 @@ import { describe, expect, it } from 'vitest';
 
 import { decryptV1, encryptV1 } from '../src/envelope/v1.js';
 import { downgradeToV1, serializeV2, upgradeToV2 } from '../src/envelope/v2.js';
+import { AuthenticationFailedError } from '../src/errors.js';
 import { deriveCommitKey, deriveContentKey } from '../src/primitives/hkdf.js';
 import type { Algorithm, EnvelopeV1 } from '../src/types.js';
 
@@ -195,9 +196,7 @@ describe('envelope test vectors', () => {
         ...v.expected.v1,
         enc: { ...v.expected.v1.enc, commit: commitBytes.toString('base64') },
       };
-      expect(() => decryptV1(tampered, cek, commitKey)).toThrow(
-        'key commitment verification failed',
-      );
+      expect(() => decryptV1(tampered, cek, commitKey)).toThrow(AuthenticationFailedError);
     });
 
     it.each(vectorFiles)('%s — mutated kid throws', (file) => {
