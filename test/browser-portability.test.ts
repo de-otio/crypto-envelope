@@ -248,16 +248,22 @@ describe('passphrase encoding — Buffer.from replaced with TextEncoder', () => 
   });
 });
 
+// Argon2id at OWASP-2023 defaults (t=3, m=64 MiB, p=1) takes ~1-2s per
+// call; CI runners can exceed vitest's 5s default when a test does
+// multiple calls. Per-test timeout bump rather than moving to test/slow
+// so browser-portability stays in the fast suite.
 describe('deriveMasterKeyFromPassphrase (Argon2id) — produces consistent output', () => {
   it('derives a 32-byte master key', async () => {
     const salt = new Uint8Array(16).fill(0xab);
-    const master = await deriveMasterKeyFromPassphrase('hunter2', salt, { algorithm: 'argon2id' });
+    const master = await deriveMasterKeyFromPassphrase('hunter2', salt, {
+      algorithm: 'argon2id',
+    });
     try {
       expect(master.length).toBe(32);
     } finally {
       master.dispose();
     }
-  });
+  }, 30_000);
 
   it('is deterministic (same passphrase + salt → same key)', async () => {
     const salt = new Uint8Array(16).fill(0x01);
@@ -269,7 +275,7 @@ describe('deriveMasterKeyFromPassphrase (Argon2id) — produces consistent outpu
       a.dispose();
       b.dispose();
     }
-  });
+  }, 30_000);
 
   it('matches argon2 primitive directly (TextEncoder vs Buffer path)', async () => {
     const passphrase = 'test-passphrase';
@@ -296,11 +302,13 @@ describe('deriveMasterKeyFromPassphrase (Argon2id) — produces consistent outpu
     } finally {
       master.dispose();
     }
-  });
+  }, 30_000);
 
   it('uses derived key to encrypt and decrypt an envelope', async () => {
     const salt = new Uint8Array(16).fill(0xab);
-    const master = await deriveMasterKeyFromPassphrase('hunter2', salt, { algorithm: 'argon2id' });
+    const master = await deriveMasterKeyFromPassphrase('hunter2', salt, {
+      algorithm: 'argon2id',
+    });
     try {
       const client = new EnvelopeClient({ masterKey: master });
       try {
@@ -312,7 +320,7 @@ describe('deriveMasterKeyFromPassphrase (Argon2id) — produces consistent outpu
     } finally {
       master.dispose();
     }
-  });
+  }, 30_000);
 });
 
 describe('deriveMasterKeyFromPassphrase (PBKDF2-SHA256)', () => {
