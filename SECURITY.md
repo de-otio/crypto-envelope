@@ -9,6 +9,10 @@
 
 Once v1.0.0 ships, the wire format is frozen: a v1.x release must always decrypt envelopes produced by any prior v1.x release. Breaking the wire format will be a v2.0.0 release with at least 12 months' notice.
 
+### Wire-format `v` field is not AAD-bound
+
+The library defines two wire formats — v1 (JSON, base64) and v2 (CBOR, raw bytes) — that encode the **same cryptographic object**. The AAD bound by the AEAD at encrypt time always uses `v: 1` regardless of which wire format the envelope is serialised into; see `src/envelope/v1.ts:61,137` and `src/aad.ts`. As a direct consequence, the wire-format `v` field is not integrity-protected: an attacker who flips it does not invalidate the AEAD tag. They only cause the deserialiser to fail because the byte structure no longer matches the claimed format (a `v: 1` envelope is JSON-shaped; a `v: 2` envelope starts with the `CKB` magic prefix). The cryptographic object — nonce, ciphertext, tag, commitment, and bound AAD — is bit-for-bit identical between v1 and v2, so format conversion via `upgradeToV2`/`downgradeToV1` is a side-effect-free re-encoding rather than a re-encryption. Full discussion and the rationale for choosing this invariant over an AAD-bound `v` are in [`doc/tier-upgrade.md`](./doc/tier-upgrade.md).
+
 ## Reporting a vulnerability
 
 **Please do not report security issues through public GitHub issues, discussions, or pull requests.**
