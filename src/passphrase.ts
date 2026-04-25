@@ -94,12 +94,12 @@ export async function deriveMasterKeyFromPassphrase(
     }
     warnOncePbkdf2();
 
-    const passphraseBytes = Buffer.from(passphrase, 'utf8');
+    const passphraseBytes = new TextEncoder().encode(passphrase);
     let derived: Uint8Array | undefined;
     try {
       derived = pbkdf2Sha256(passphraseBytes, salt, { iterations: params.iterations });
       options?.signal?.throwIfAborted();
-      return asMasterKey(SecureBuffer.from(Buffer.from(derived)));
+      return asMasterKey(SecureBuffer.from(derived));
     } finally {
       if (derived) derived.fill(0);
       passphraseBytes.fill(0);
