@@ -48,3 +48,4 @@ export type {
   ISecureBuffer,
   MasterKey,
 } from './types.js';
+export { deriveContentKey, deriveCommitKey } from './primitives/hkdf.js';
