@@ -1,0 +1,73 @@
+{
+  "description": "RFC 8785 canonical JSON examples from the crypto-envelope test suite.",
+  "reference": "https://www.rfc-editor.org/rfc/rfc8785",
+  "examples": [
+    {
+      "name": "sorted-keys",
+      "description": "Key sorting: keys must appear in ascending Unicode code-point order.",
+      "reference": "RFC 8785 §3.2.3",
+      "input": {
+        "z": 1,
+        "a": 2,
+        "m": 3
+      },
+      "expected": "{\"a\":2,\"m\":3,\"z\":1}"
+    },
+    {
+      "name": "nested-object-sorting",
+      "description": "Key sorting applied recursively to nested objects.",
+      "reference": "RFC 8785 §3.2.3",
+      "input": {
+        "b": {
+          "z": 1,
+          "a": 2
+        },
+        "a": 1
+      },
+      "expected": "{\"a\":1,\"b\":{\"a\":2,\"z\":1}}"
+    },
+    {
+      "name": "envelope-aad-shape",
+      "description": "The exact AAD shape used by the crypto-envelope library.",
+      "reference": "internal — src/aad.ts constructAAD",
+      "input": {
+        "alg": "XChaCha20-Poly1305",
+        "id": "b_test000000000000",
+        "kid": "CEK",
+        "v": 1
+      },
+      "expected": "{\"alg\":\"XChaCha20-Poly1305\",\"id\":\"b_test000000000000\",\"kid\":\"CEK\",\"v\":1}"
+    },
+    {
+      "name": "null-and-booleans",
+      "description": "null and boolean literals.",
+      "reference": "RFC 8785 §3.2.2",
+      "input": {
+        "v": null,
+        "t": true,
+        "f": false
+      },
+      "expected": "{\"f\":false,\"t\":true,\"v\":null}"
+    },
+    {
+      "name": "numbers",
+      "description": "Integer, negative zero (must emit as 0), and float serialisation.",
+      "reference": "RFC 8785 §3.2.2.3",
+      "input": {
+        "n": 42,
+        "nz": 0,
+        "pi": 3.14
+      },
+      "expected": "{\"n\":42,\"nz\":0,\"pi\":3.14}"
+    },
+    {
+      "name": "string-escaping",
+      "description": "Short-form escapes for control characters (RFC 8785 §3.2.2.2).",
+      "reference": "RFC 8785 §3.2.2.2",
+      "input": {
+        "s": "\b\t\n\f\r"
+      },
+      "expected": "{\"s\":\"\\b\\t\\n\\f\\r\"}"
+    }
+  ]
+}

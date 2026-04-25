@@ -1,0 +1,49 @@
+{
+  "description": "XChaCha20-Poly1305 / kid=default / case=nested-json",
+  "inputs": {
+    "masterKeyHex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "kid": "default",
+    "algorithm": "XChaCha20-Poly1305",
+    "payload": {
+      "type": "document",
+      "version": 3,
+      "draft": false,
+      "rating": null,
+      "score": 4.75,
+      "tags": [
+        "alpha",
+        "beta",
+        "gamma"
+      ],
+      "meta": {
+        "author": "Alice",
+        "contributors": [
+          "Bob",
+          "Carol"
+        ],
+        "stats": {
+          "words": 1024,
+          "chars": 5120
+        }
+      }
+    },
+    "nonceHex": "01030000dededededededededededededededededededede",
+    "id": "xchacha-default",
+    "ts": "2026-04-25T00:00:00.000Z"
+  },
+  "expected": {
+    "v1": {
+      "v": 1,
+      "id": "xchacha-default",
+      "ts": "2026-04-25T00:00:00.000Z",
+      "enc": {
+        "alg": "XChaCha20-Poly1305",
+        "kid": "default",
+        "ct": "AQMAAN7e3t7e3t7e3t7e3t7e3t7e3t7eJnavcXhMEwE9PF0OKSdnYvzqt2sa1GDDYXfsfQJFm9Uzn7ZpXQrpovHnR7ajJACTx2muTelaBg1ZNmWQGDlCH5V+hPRprhAkp0t3t9Ov59YLpHIAE7muRNFSLhAbP5PlLf8olguSQyJ0ECddz1JrT5qd5EUe+eirDPvZxNL1WiJFOn1CY78HIoDOBwehCxM3xcHiWYb1fW4sNcntHQD/HtufOp2/HP0OyxlGtbAyec/mCeKQ8D/KtDoAfLxe/YO3s6rE9yJjYPLToZiOhS1kuTB3jkHo",
+        "ct.len": 237,
+        "commit": "TUb2yGCvIbdsWdxRZmCGREI77UxuaDDieLtebGe3+pA="
+      }
+    },
+    "v2Hex": "434b42a46176026269646f786368616368612d64656661756c746274737818323032362d30342d32355430303a30303a30302e3030305a63656e63a462637458ed01030000dededededededededededededededededededede2676af71784c13013d3c5d0e29276762fceab76b1ad460c36177ec7d02459bd5339fb6695d0ae9a2f1e747b6a3240093c769ae4de95a060d593665901839421f957e84f469ae1024a74b77b7d3afe7d60ba4720013b9ae44d1522e101b3f93e52dff28960b9243227410275dcf526b4f9a9de4451ef9e8ab0cfbd9c4d2f55a22453a7d4263bf072280ce0707a10b1337c5c1e25986f57d6e2c35c9ed1d00ff1edb9f3a9dbf1cfd0ecb1946b5b03279cfe609e290f03fcab43a007cbc5efd83b7b3aac4f7226360f2d3a1988e852d64b930778e41e863616c67725843686143686132302d506f6c7931333035636b69646764656661756c7466636f6d6d697458204d46f6c860af21b76c59dc5166608644423bed4c6e6830e278bb5e6c67b7fa90"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "description": "Pinned vector with a non-empty id to guard against a refactor that drops or reorders the id prefix in computeCommitment. HMAC input is UTF-8(id) || dataBytes.",
+  "reference": "internal — test/commitment.test.ts external KATs section",
+  "algorithm": "HMAC-SHA256 via computeCommitment",
+  "inputs": {
+    "keyHex": "4a656665",
+    "id": "b_envelope_id",
+    "dataHex": "7768617420646f2079612077616e7420666f72206e6f7468696e673f"
+  },
+  "expected": {
+    "tagHex": "64fe852ca4704ad5e1e9e355f82fed5b1b3473bfb957027c2e77987eb6c1d57d"
+  },
+  "note": "expected.tagHex is HMAC-SHA256(key, UTF8('b_envelope_id') || data). Any change to id ordering or encoding will break this test."
+}

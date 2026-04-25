@@ -1,6 +1,23 @@
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { computeCommitment, verifyCommitment } from '../src/primitives/commitment.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function loadJson<T>(relPath: string): T {
+  return JSON.parse(readFileSync(join(__dirname, relPath), 'utf8')) as T;
+}
+
+interface CommitmentVector {
+  inputs: { keyHex: string; id: string; dataHex: string };
+  expected: { tagHex: string };
+}
+
+const rfc4231v3 = loadJson<CommitmentVector>('vectors/commitment/rfc-4231-4-3.json');
+const nonEmptyId = loadJson<CommitmentVector>('vectors/commitment/non-empty-id-pinned.json');
 
 describe('key commitment (HMAC-SHA256)', () => {
   const commitKey = randomBytes(32);
@@ -79,34 +96,38 @@ describe('key commitment (HMAC-SHA256)', () => {
   });
 
   describe('external KATs', () => {
+    // Data loaded from test/vectors/commitment/rfc-4231-4-3.json.
     // RFC 4231 §4.3 — HMAC-SHA256 test case 2, key="Jefe",
     // data="what do ya want for nothing?". We invoke through
     // computeCommitment with an empty id so the HMAC input is just data.
     it('matches RFC 4231 HMAC-SHA256 test case 2 (empty id)', () => {
-      const key = new TextEncoder().encode('Jefe');
-      const data = new TextEncoder().encode('what do ya want for nothing?');
-      const tag = computeCommitment(key, '', data);
-      expect(Buffer.from(tag).toString('hex')).toBe(
-        '5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843',
-      );
+      const key = Buffer.from(rfc4231v3.inputs.keyHex, 'hex');
+      const data = Buffer.from(rfc4231v3.inputs.dataHex, 'hex');
+      const tag = computeCommitment(key, rfc4231v3.inputs.id, data);
+      expect(Buffer.from(tag).toString('hex')).toBe(rfc4231v3.expected.tagHex);
     });
 
+    // Data loaded from test/vectors/commitment/non-empty-id-pinned.json.
+    // Cross-check against a direct HMAC(key, id_bytes || data) with
+    // @noble/hashes. Any wrapper change that reorders, drops, or
+    // double-encodes the id will break this.
     it('pins a non-empty-id vector so a refactor dropping the id prefix is caught', async () => {
-      // Cross-check against a direct HMAC(key, id_bytes || data) with
-      // @noble/hashes. Any wrapper change that reorders, drops, or
-      // double-encodes the id will break this.
       const { hmac } = await import('@noble/hashes/hmac.js');
       const { sha256 } = await import('@noble/hashes/sha2.js');
-      const key = new TextEncoder().encode('Jefe');
-      const data = new TextEncoder().encode('what do ya want for nothing?');
-      const idStr = 'b_envelope_id';
+      const key = Buffer.from(nonEmptyId.inputs.keyHex, 'hex');
+      const data = Buffer.from(nonEmptyId.inputs.dataHex, 'hex');
+      const idStr = nonEmptyId.inputs.id;
       const idBytes = new TextEncoder().encode(idStr);
       const combined = new Uint8Array(idBytes.length + data.length);
       combined.set(idBytes, 0);
       combined.set(data, idBytes.length);
       const expected = hmac(sha256, key, combined);
 
+      // Both the direct HMAC and our vector pin must agree.
       expect(Buffer.from(computeCommitment(key, idStr, data))).toEqual(Buffer.from(expected));
+      expect(Buffer.from(computeCommitment(key, idStr, data)).toString('hex')).toBe(
+        nonEmptyId.expected.tagHex,
+      );
     });
   });
 });

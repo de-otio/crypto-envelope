@@ -1,5 +1,26 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { canonicalJson } from '../src/canonical-json.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+interface Rfc8785Example {
+  name: string;
+  description: string;
+  reference: string;
+  input: Record<string, unknown>;
+  expected: string;
+}
+
+interface Rfc8785VectorFile {
+  examples: Rfc8785Example[];
+}
+
+const rfc8785 = JSON.parse(
+  readFileSync(join(__dirname, 'vectors/canonical-json/rfc-8785-examples.json'), 'utf8'),
+) as Rfc8785VectorFile;
 
 describe('canonicalJson', () => {
   describe('key sorting', () => {
@@ -189,6 +210,15 @@ describe('canonicalJson', () => {
       expect(result).toBe(
         '{"alg":"XChaCha20-Poly1305","id":"b_test000000000000","kid":"CEK","v":1}',
       );
+    });
+  });
+
+  describe('RFC 8785 test vectors (from test/vectors/canonical-json/rfc-8785-examples.json)', () => {
+    // These drive the same logic as the inline tests above but use the
+    // externally pinned vector file. Any regression in canonicalJson output
+    // that also breaks the vector pins will be caught here.
+    it.each(rfc8785.examples)('$name — $description', ({ input, expected }) => {
+      expect(canonicalJson(input)).toBe(expected);
     });
   });
 });

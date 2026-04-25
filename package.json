@@ -44,6 +44,11 @@
       "types": "./dist/primitives/index.d.ts",
       "import": "./dist/primitives/index.js",
       "require": "./dist-cjs/primitives/index.js"
+    },
+    "./test-vectors": {
+      "import": "./test/vectors/index.js",
+      "require": "./test/vectors/index.cjs",
+      "default": "./test/vectors/index.js"
     }
   },
   "browser": {
@@ -51,7 +56,15 @@
     "./dist-cjs/secure-buffer.js": "./dist/secure-buffer.browser.js",
     "sodium-native": false
   },
-  "files": ["dist/", "dist-cjs/", "LICENSE", "README.md", "SECURITY.md", "CHANGELOG.md"],
+  "files": [
+    "dist/",
+    "dist-cjs/",
+    "test/vectors/",
+    "LICENSE",
+    "README.md",
+    "SECURITY.md",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc && tsc -p tsconfig.cjs.json",
     "test": "vitest run --exclude '**/slow/**'",
@@ -61,7 +74,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "biome check . && tsc --noEmit",
     "lint:fix": "biome check --write .",
-    "prepublishOnly": "npm run build && npm run test:all"
+    "prepublishOnly": "npm run build && npm run test:all",
+    "regen-vectors": "esbuild --bundle --platform=node --format=esm tools/regen-vectors.ts --outfile=tmp/regen-vectors.mjs && node tmp/regen-vectors.mjs"
   },
   "engines": {
     "node": ">=22.0.0"

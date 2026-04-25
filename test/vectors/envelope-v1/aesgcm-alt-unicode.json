@@ -1,0 +1,32 @@
+{
+  "description": "AES-256-GCM / kid=alt / case=unicode",
+  "inputs": {
+    "masterKeyHex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "kid": "alt",
+    "algorithm": "AES-256-GCM",
+    "payload": {
+      "greeting": "こんにちは",
+      "emoji": "🔑",
+      "arabic": "مرحبا",
+      "math": "π ≈ 3.14159"
+    },
+    "nonceHex": "02040000dededededededede",
+    "id": "aesgcm-alt",
+    "ts": "2026-04-25T00:00:00.000Z"
+  },
+  "expected": {
+    "v1": {
+      "v": 1,
+      "id": "aesgcm-alt",
+      "ts": "2026-04-25T00:00:00.000Z",
+      "enc": {
+        "alg": "AES-256-GCM",
+        "kid": "alt",
+        "ct": "AgQAAN7e3t7e3t7educwNnn6tUvMVEuoKIrgPE6IF8Qxgsj00ehK1zXym4Nm1QI45XZaRKf8h+e11/9FOFxlmRqot0kIkctF2Ork+uWTaZhqinhp5bJBvRdb2+Mk0FMnaj145ipW+siYVpibKcSCTwkNxAfYNLg=",
+        "ct.len": 119,
+        "commit": "UHzIerKOGF0M9QbhZugZRCmQz+z+//tH28pGFlrtHt0="
+      }
+    },
+    "v2Hex": "434b42a46176026269646a61657367636d2d616c746274737818323032362d30342d32355430303a30303a30302e3030305a63656e63a4626374587702040000dededededededede76e7303679fab54bcc544ba8288ae03c4e8817c43182c8f4d1e84ad735f29b8366d50238e5765a44a7fc87e7b5d7ff45385c65991aa8b7490891cb45d8eae4fae59369986a8a7869e5b241bd175bdbe324d053276a3d78e62a56fac89856989b29c4824f090dc407d834b863616c676b4145532d3235362d47434d636b696463616c7466636f6d6d69745820507cc87ab28e185d0cf506e166e819442990cfecfefffb47dbca46165aed1edd"
+  }
+}
