@@ -2,9 +2,11 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { AES_GCM_HARD_CAP, NonceBudgetExceeded } from '../src/envelope-client.js';
 import { rewrapEnvelope } from '../src/envelope/rewrap.js';
 import { decryptV1, encryptV1 } from '../src/envelope/v1.js';
 import { downgradeToV1, upgradeToV2 } from '../src/envelope/v2.js';
+import { InMemoryMessageCounter } from '../src/message-counter.js';
 import { asMasterKey } from '../src/passphrase.js';
 import { deriveCommitKey, deriveContentKey } from '../src/primitives/hkdf.js';
 import { SecureBuffer } from '../src/secure-buffer.js';
@@ -270,6 +272,133 @@ describe('rewrapEnvelope — caller owns master lifecycle', () => {
 
     expect(oldMaster.isDisposed).toBe(false);
     expect(newMaster.isDisposed).toBe(false);
+  });
+});
+
+// -------------------------------------------------------------------------
+// T5 — MessageCounter integration
+// -------------------------------------------------------------------------
+
+describe('rewrapEnvelope — MessageCounter integration (AES-256-GCM)', () => {
+  const payload = { x: 'counter-test' };
+
+  it('increments the counter once per AES-GCM rewrap', async () => {
+    const oldMaster = freshMaster(0xc1);
+    const newMaster = freshMaster(0xc2);
+    const counter = new InMemoryMessageCounter();
+    counter._reset();
+
+    const orig = encryptUnder(oldMaster, payload, { algorithm: 'AES-256-GCM' });
+    const rewrapped = await rewrapEnvelope(orig, oldMaster, newMaster, counter);
+
+    // Result is a valid envelope decryptable under newMaster.
+    expect(decryptUnder(newMaster, rewrapped as EnvelopeV1)).toEqual(payload);
+
+    // Derive the fingerprint the same way rewrapEnvelope does (newCommit
+    // fingerprinted under the newMaster) so we can read back the count.
+    const { keyFingerprint } = await import('../src/message-counter.js');
+    const nb2 = new Uint8Array(newMaster.buffer);
+    const ck = deriveCommitKey(nb2);
+    const fp = keyFingerprint(ck);
+    ck.fill(0);
+
+    // The counter should be 1 after one rewrap.
+    expect(await counter.current(fp)).toBe(1);
+  });
+
+  it('does NOT increment the counter for XChaCha20-Poly1305 rewraps', async () => {
+    const oldMaster = freshMaster(0xc3);
+    const newMaster = freshMaster(0xc4);
+    const counter = new InMemoryMessageCounter();
+    counter._reset();
+
+    const orig = encryptUnder(oldMaster, payload, { algorithm: 'XChaCha20-Poly1305' });
+    await rewrapEnvelope(orig, oldMaster, newMaster, counter);
+
+    // For XChaCha no counter increment should occur. Derive the fp and
+    // verify the count is 0.
+    const { keyFingerprint } = await import('../src/message-counter.js');
+    const nb = new Uint8Array(newMaster.buffer);
+    const ck = deriveCommitKey(nb);
+    const fp = keyFingerprint(ck);
+    ck.fill(0);
+    expect(await counter.current(fp)).toBe(0);
+  });
+
+  it('throws NonceBudgetExceeded when AES-GCM counter would exceed cap', async () => {
+    const oldMaster = freshMaster(0xc5);
+    const newMaster = freshMaster(0xc6);
+    const orig = encryptUnder(oldMaster, payload, { algorithm: 'AES-256-GCM' });
+
+    // Build a counter that returns AES_GCM_HARD_CAP + 1 on the first increment.
+    const exhaustedCounter = {
+      async increment(_fp: Uint8Array) {
+        return AES_GCM_HARD_CAP + 1;
+      },
+      async current(_fp: Uint8Array) {
+        return AES_GCM_HARD_CAP + 1;
+      },
+    };
+
+    await expect(
+      rewrapEnvelope(orig, oldMaster, newMaster, exhaustedCounter),
+    ).rejects.toBeInstanceOf(NonceBudgetExceeded);
+  });
+
+  it('existing callers without counter still work synchronously for XChaCha', () => {
+    const oldMaster = freshMaster(0xc7);
+    const newMaster = freshMaster(0xc8);
+    const orig = encryptUnder(oldMaster, payload);
+    // No counter — must return AnyEnvelope (not a Promise) synchronously.
+    const result = rewrapEnvelope(orig, oldMaster, newMaster);
+    expect(result).not.toBeInstanceOf(Promise);
+    expect(decryptUnder(newMaster, result as EnvelopeV1)).toEqual(payload);
+  });
+
+  it('existing callers without counter still work synchronously for AES-256-GCM', () => {
+    const oldMaster = freshMaster(0xc9);
+    const newMaster = freshMaster(0xca);
+    const orig = encryptUnder(oldMaster, payload, { algorithm: 'AES-256-GCM' });
+    const result = rewrapEnvelope(orig, oldMaster, newMaster);
+    expect(result).not.toBeInstanceOf(Promise);
+    expect(decryptUnder(newMaster, result as EnvelopeV1)).toEqual(payload);
+  });
+});
+
+describe('rewrapEnvelope — T5 tamper-rejection additions', () => {
+  const payload = { type: 'tamper-test', n: 7 };
+
+  it('rejects a tampered enc.alg field before rewrap', () => {
+    const oldMaster = freshMaster(0xd1);
+    const newMaster = freshMaster(0xd2);
+    const orig = encryptUnder(oldMaster, payload);
+    // Swap the alg — the commitment was computed over the real rawCt
+    // which was encrypted under the real alg, so alg-mismatch causes
+    // AEAD tag failure.
+    const tampered: EnvelopeV1 = {
+      ...orig,
+      enc: { ...orig.enc, alg: 'AES-256-GCM' as 'XChaCha20-Poly1305' },
+    };
+    expect(() => rewrapEnvelope(tampered, oldMaster, newMaster)).toThrow();
+  });
+
+  it('rewrap output is rejected on subsequent decrypt after AAD tamper', () => {
+    const oldMaster = freshMaster(0xd3);
+    const newMaster = freshMaster(0xd4);
+    const orig = encryptUnder(oldMaster, payload);
+    const rewrapped = rewrapEnvelope(orig, oldMaster, newMaster) as EnvelopeV1;
+
+    // Mutate id on the rewrapped envelope — AAD tamper.
+    const tampered: EnvelopeV1 = { ...rewrapped, id: 'b_fake' };
+    expect(() => decryptUnder(newMaster, tampered)).toThrow();
+  });
+
+  it('rejects wrong old master key (distinct from existing test, uses AES-GCM)', () => {
+    const master = freshMaster(0xd5);
+    const wrongMaster = freshMaster(0xd6);
+    const newMaster = freshMaster(0xd7);
+    const orig = encryptUnder(master, payload, { algorithm: 'AES-256-GCM' });
+    expect(() => rewrapEnvelope(orig, wrongMaster, newMaster)).toThrow();
   });
 });
 
