@@ -51,7 +51,11 @@ describe('deriveMasterKeyFromPassphrase', () => {
     });
   });
 
-  describe('PBKDF2-SHA256 branch', () => {
+  // PBKDF2-SHA256 at the 1,000,000-iteration floor is intentionally slow;
+  // tests that run two back-to-back derivations can exceed vitest's 5s
+  // default on slow CI runners. Raise the per-suite timeout, mirroring
+  // the Argon2id branch above and the browser-portability suite.
+  describe('PBKDF2-SHA256 branch', { timeout: 30_000 }, () => {
     it('returns a 32-byte MasterKey at the floor iteration count', async () => {
       const salt = randomBytes(16);
       const mk = await deriveMasterKeyFromPassphrase('hunter2', salt, {
