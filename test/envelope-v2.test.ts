@@ -73,7 +73,7 @@ describe('envelope v2 (CBOR wire format)', () => {
     it('refuses to serialise a non-v2 envelope', () => {
       const { env } = makeV1();
       // @ts-expect-error — deliberate invalid input
-      expect(() => serializeV2(env)).toThrow('version must be 2');
+      expect(() => serializeV2(env)).toThrow('unsupported envelope version');
     });
 
     it('rejects CBOR bytes lacking the magic prefix', () => {

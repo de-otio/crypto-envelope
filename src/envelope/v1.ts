@@ -1,6 +1,13 @@
 import { constructAAD } from '../aad.js';
 import { generateBlobId } from '../blob-id.js';
 import { canonicalJson } from '../canonical-json.js';
+import {
+  AuthenticationFailedError,
+  MalformedEnvelopeError,
+  TruncatedCiphertextError,
+  UnsupportedAlgorithmError,
+  UnsupportedVersionError,
+} from '../errors.js';
 import { constantTimeEqual } from '../internal/runtime.js';
 import { TAG_LENGTH, aeadDecrypt, aeadEncrypt, nonceLengthFor } from '../primitives/aead.js';
 import { computeCommitment, verifyCommitment } from '../primitives/commitment.js';
@@ -72,7 +79,9 @@ export function encryptV1(args: EncryptV1Args): EnvelopeV1 {
   // Verify-after-encrypt — guards against a bug in the AEAD primitive.
   const recovered = aeadDecrypt(alg, cek, nonce, ciphertext, tag, aad);
   if (!constantTimeEqual(recovered, plaintext)) {
-    throw new Error('verify-after-encrypt failed: decrypted plaintext does not match input');
+    throw new MalformedEnvelopeError(
+      'verify-after-encrypt failed: decrypted plaintext does not match input',
+    );
   }
 
   return {
@@ -110,10 +119,10 @@ export function decryptV1(
   commitKey: Uint8Array,
 ): Record<string, unknown> {
   if (envelope.v !== 1) {
-    throw new Error(`unsupported envelope version: ${envelope.v}`);
+    throw new UnsupportedVersionError(envelope.v);
   }
   if (envelope.enc.alg !== 'XChaCha20-Poly1305' && envelope.enc.alg !== 'AES-256-GCM') {
-    throw new Error(`unsupported algorithm: ${envelope.enc.alg}`);
+    throw new UnsupportedAlgorithmError(envelope.enc.alg);
   }
 
   const rawCt = new Uint8Array(Buffer.from(envelope.enc.ct, 'base64'));
@@ -121,17 +130,17 @@ export function decryptV1(
   const nonceLen = nonceLengthFor(envelope.enc.alg);
   const minLen = nonceLen + TAG_LENGTH;
   if (rawCt.length < minLen) {
-    throw new Error(`truncated ciphertext: expected at least ${minLen} bytes, got ${rawCt.length}`);
+    throw new TruncatedCiphertextError(minLen, rawCt.length);
   }
   if (rawCt.length !== envelope.enc['ct.len']) {
-    throw new Error(
+    throw new MalformedEnvelopeError(
       `ciphertext length mismatch: ct.len=${envelope.enc['ct.len']}, actual=${rawCt.length}`,
     );
   }
 
   const expectedCommit = new Uint8Array(Buffer.from(envelope.enc.commit, 'base64'));
   if (!verifyCommitment(commitKey, envelope.id, rawCt, expectedCommit)) {
-    throw new Error('key commitment verification failed');
+    throw new AuthenticationFailedError();
   }
 
   const aad = constructAAD(envelope.enc.alg, envelope.id, envelope.enc.kid, 1);
@@ -151,9 +160,14 @@ export function serializeV1(envelope: EnvelopeV1): Uint8Array {
 
 /** Parse UTF-8 JSON bytes as a v1 envelope. Does not decrypt. */
 export function deserializeV1(bytes: Uint8Array): EnvelopeV1 {
-  const parsed = JSON.parse(DECODER.decode(bytes)) as EnvelopeV1;
+  let parsed: EnvelopeV1;
+  try {
+    parsed = JSON.parse(DECODER.decode(bytes)) as EnvelopeV1;
+  } catch (e) {
+    throw new MalformedEnvelopeError(`JSON parse error: ${String(e)}`);
+  }
   if (parsed.v !== 1) {
-    throw new Error(`JSON envelope has unexpected version: ${parsed.v}`);
+    throw new MalformedEnvelopeError(`JSON envelope has unexpected version: ${parsed.v}`);
   }
   return parsed;
 }

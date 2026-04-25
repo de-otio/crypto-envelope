@@ -1,3 +1,4 @@
+import { MalformedEnvelopeError } from '../errors.js';
 import { deriveCommitKey, deriveContentKey } from '../primitives/hkdf.js';
 import type { AnyEnvelope, MasterKey } from '../types.js';
 import { decryptV1, encryptV1 } from './v1.js';
@@ -82,12 +83,12 @@ export function rewrapEnvelope(
   if (oldMasterBytes.length !== 32) {
     oldMasterBytes.fill(0);
     newMasterBytes.fill(0);
-    throw new Error(`oldMaster must be 32 bytes, got ${oldMasterBytes.length}`);
+    throw new MalformedEnvelopeError(`oldMaster must be 32 bytes, got ${oldMasterBytes.length}`);
   }
   if (newMasterBytes.length !== 32) {
     oldMasterBytes.fill(0);
     newMasterBytes.fill(0);
-    throw new Error(`newMaster must be 32 bytes, got ${newMasterBytes.length}`);
+    throw new MalformedEnvelopeError(`newMaster must be 32 bytes, got ${newMasterBytes.length}`);
   }
 
   const oldCek = deriveContentKey(oldMasterBytes);

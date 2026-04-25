@@ -1,5 +1,6 @@
 import { decode, encode } from 'cborg';
 
+import { MalformedEnvelopeError, UnsupportedVersionError } from '../errors.js';
 import type { Algorithm, AnyEnvelope, EnvelopeV1, EnvelopeV2 } from '../types.js';
 import { deserializeV1 } from './v1.js';
 
@@ -19,7 +20,7 @@ const CBOR_MAGIC = new Uint8Array([0x43, 0x4b, 0x42]);
  */
 export function serializeV2(envelope: EnvelopeV2): Uint8Array {
   if (envelope.v !== 2) {
-    throw new Error(`serializeV2: envelope version must be 2, got ${envelope.v}`);
+    throw new UnsupportedVersionError(envelope.v);
   }
   const body = encode({
     v: 2,
@@ -41,10 +42,10 @@ export function serializeV2(envelope: EnvelopeV2): Uint8Array {
 /** Parse wire bytes (magic-prefixed CBOR) as a v2 envelope. No decryption. */
 export function deserializeV2(bytes: Uint8Array): EnvelopeV2 {
   if (!hasCborMagic(bytes)) {
-    throw new Error('deserializeV2: missing CBOR magic prefix');
+    throw new MalformedEnvelopeError('missing CBOR magic prefix');
   }
   const body = bytes.subarray(CBOR_MAGIC.length);
-  const parsed = decode(body) as {
+  let parsed: {
     v: number;
     id: string;
     ts: string;
@@ -55,8 +56,13 @@ export function deserializeV2(bytes: Uint8Array): EnvelopeV2 {
       commit: Uint8Array;
     };
   };
+  try {
+    parsed = decode(body) as typeof parsed;
+  } catch (e) {
+    throw new MalformedEnvelopeError(`CBOR decode error: ${String(e)}`);
+  }
   if (parsed.v !== 2) {
-    throw new Error(`CBOR envelope has unexpected version: ${parsed.v}`);
+    throw new MalformedEnvelopeError(`CBOR envelope has unexpected version: ${parsed.v}`);
   }
   return {
     v: 2,

@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { decryptV1, deserializeV1, encryptV1, serializeV1 } from '../src/envelope/v1.js';
+import { AuthenticationFailedError } from '../src/errors.js';
 import { deriveCommitKey, deriveContentKey } from '../src/primitives/hkdf.js';
 import type { EnvelopeV1 } from '../src/types.js';
 
@@ -105,7 +106,7 @@ describe('envelope v1 (JSON wire format)', () => {
       const fake = Buffer.alloc(32, 0xff).toString('base64');
       expect(() =>
         decryptV1({ ...env, enc: { ...env.enc, commit: fake } }, cek, commitKey),
-      ).toThrow('key commitment verification failed');
+      ).toThrow(AuthenticationFailedError.MESSAGE);
     });
 
     it('rejects a mutated ciphertext byte', () => {
@@ -184,7 +185,7 @@ describe('envelope v1 (JSON wire format)', () => {
         kid: 'default',
       });
       const other = new Uint8Array(randomBytes(32));
-      expect(() => decryptV1(env, cek, other)).toThrow('key commitment verification failed');
+      expect(() => decryptV1(env, cek, other)).toThrow(AuthenticationFailedError.MESSAGE);
     });
   });
 

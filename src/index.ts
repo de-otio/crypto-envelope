@@ -4,6 +4,14 @@
  * Opinionated authenticated-encryption envelopes for TypeScript.
  */
 
+export {
+  EnvelopeError,
+  AuthenticationFailedError,
+  UnsupportedAlgorithmError,
+  UnsupportedVersionError,
+  MalformedEnvelopeError,
+  TruncatedCiphertextError,
+} from './errors.js';
 export { canonicalJson } from './canonical-json.js';
 export { generateBlobId } from './blob-id.js';
 export { SecureBuffer } from './secure-buffer.js';

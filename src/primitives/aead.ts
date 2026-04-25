@@ -1,5 +1,10 @@
 import { gcm } from '@noble/ciphers/aes.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha.js';
+import {
+  AuthenticationFailedError,
+  MalformedEnvelopeError,
+  UnsupportedAlgorithmError,
+} from '../errors.js';
 import { getRandomBytes } from '../internal/runtime.js';
 import type { Algorithm } from '../types.js';
 
@@ -23,7 +28,7 @@ export function nonceLengthFor(alg: Algorithm): number {
       return AES_GCM_NONCE_LENGTH;
     default: {
       const _exhaustive: never = alg;
-      throw new Error(`unknown algorithm: ${String(_exhaustive)}`);
+      throw new UnsupportedAlgorithmError(String(_exhaustive));
     }
   }
 }
@@ -73,7 +78,7 @@ export function aeadEncrypt(
       return aeadEncryptAesGcm(key, plaintext, aad);
     default: {
       const _exhaustive: never = alg;
-      throw new Error(`unsupported algorithm: ${String(_exhaustive)}`);
+      throw new UnsupportedAlgorithmError(String(_exhaustive));
     }
   }
 }
@@ -103,7 +108,7 @@ export function aeadDecrypt(
       return aeadDecryptAesGcm(key, nonce, ciphertext, tag, aad);
     default: {
       const _exhaustive: never = alg;
-      throw new Error(`unsupported algorithm: ${String(_exhaustive)}`);
+      throw new UnsupportedAlgorithmError(String(_exhaustive));
     }
   }
 }
@@ -132,12 +137,12 @@ function aeadDecryptXChaCha(
 ): Uint8Array {
   checkKey(key, 'XChaCha20-Poly1305');
   if (nonce.length !== XCHACHA_NONCE_LENGTH) {
-    throw new Error(
+    throw new MalformedEnvelopeError(
       `XChaCha20-Poly1305 nonce must be ${XCHACHA_NONCE_LENGTH} bytes, got ${nonce.length}`,
     );
   }
   if (tag.length !== TAG_LENGTH) {
-    throw new Error(`tag must be ${TAG_LENGTH} bytes, got ${tag.length}`);
+    throw new MalformedEnvelopeError(`tag must be ${TAG_LENGTH} bytes, got ${tag.length}`);
   }
 
   const sealed = new Uint8Array(ciphertext.length + tag.length);
@@ -145,7 +150,11 @@ function aeadDecryptXChaCha(
   sealed.set(tag, ciphertext.length);
 
   const cipher = xchacha20poly1305(key, nonce, aad);
-  return cipher.decrypt(sealed);
+  try {
+    return cipher.decrypt(sealed);
+  } catch {
+    throw new AuthenticationFailedError();
+  }
 }
 
 // ── AES-256-GCM internals ────────────────────────────────────────────────
@@ -175,10 +184,12 @@ function aeadDecryptAesGcm(
 ): Uint8Array {
   checkKey(key, 'AES-256-GCM');
   if (nonce.length !== AES_GCM_NONCE_LENGTH) {
-    throw new Error(`AES-256-GCM nonce must be ${AES_GCM_NONCE_LENGTH} bytes, got ${nonce.length}`);
+    throw new MalformedEnvelopeError(
+      `AES-256-GCM nonce must be ${AES_GCM_NONCE_LENGTH} bytes, got ${nonce.length}`,
+    );
   }
   if (tag.length !== TAG_LENGTH) {
-    throw new Error(`tag must be ${TAG_LENGTH} bytes, got ${tag.length}`);
+    throw new MalformedEnvelopeError(`tag must be ${TAG_LENGTH} bytes, got ${tag.length}`);
   }
 
   const sealed = new Uint8Array(ciphertext.length + tag.length);
@@ -186,13 +197,17 @@ function aeadDecryptAesGcm(
   sealed.set(tag, ciphertext.length);
 
   const cipher = gcm(key, nonce, aad);
-  return cipher.decrypt(sealed);
+  try {
+    return cipher.decrypt(sealed);
+  } catch {
+    throw new AuthenticationFailedError();
+  }
 }
 
 // ── Shared key-length check ──────────────────────────────────────────────
 
 function checkKey(key: Uint8Array, alg: Algorithm): void {
   if (key.length !== KEY_LENGTH) {
-    throw new Error(`${alg} key must be ${KEY_LENGTH} bytes, got ${key.length}`);
+    throw new MalformedEnvelopeError(`${alg} key must be ${KEY_LENGTH} bytes, got ${key.length}`);
   }
 }

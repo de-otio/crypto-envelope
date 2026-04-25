@@ -105,6 +105,69 @@ Design justification for each feature traces back to a specific class of applica
 
 Published test vectors cover RFC 8785 canonicalisation, RFC 5869 Appendix A.1 HKDF-SHA256, RFC 4231 §4.3 HMAC-SHA256, `draft-irtf-cfrg-xchacha` §A.3.1 XChaCha20-Poly1305 KAT, an Argon2id cross-implementation KAT against libsodium's `crypto_pwhash`, RFC 7914 §11 PBKDF2-SHA256 vectors, NIST SP 800-38D / McGrew-Viega AES-256-GCM test cases 13–16, and 66 Wycheproof adversarial AES-256-GCM vectors (keySize=256 / ivSize=96 / tagSize=128).
 
+## Error handling
+
+All library errors are instances of `EnvelopeError` and carry a stable `code` string suitable for `switch` statements. Import the classes from the main entry point:
+
+```typescript
+import {
+  EnvelopeError,
+  AuthenticationFailedError,
+  UnsupportedAlgorithmError,
+  UnsupportedVersionError,
+  MalformedEnvelopeError,
+  TruncatedCiphertextError,
+  NonceBudgetExceeded,
+} from '@de-otio/crypto-envelope';
+```
+
+### Error class hierarchy
+
+```
+EnvelopeError                    (base — code: string, message: string)
+├── AuthenticationFailedError    code: 'AUTHENTICATION_FAILED'
+├── UnsupportedAlgorithmError    code: 'UNSUPPORTED_ALGORITHM'
+├── UnsupportedVersionError      code: 'UNSUPPORTED_VERSION'
+├── MalformedEnvelopeError       code: 'MALFORMED_ENVELOPE'
+├── TruncatedCiphertextError     code: 'TRUNCATED_CIPHERTEXT'
+└── NonceBudgetExceeded          code: 'NONCE_BUDGET_EXCEEDED'
+```
+
+### Switching on error codes
+
+```typescript
+import { EnvelopeError, AuthenticationFailedError } from '@de-otio/crypto-envelope';
+
+try {
+  const plaintext = await client.decrypt(wire);
+} catch (e) {
+  if (!(e instanceof EnvelopeError)) throw e; // rethrow non-envelope errors
+  switch (e.code) {
+    case 'AUTHENTICATION_FAILED':
+      // Wrong key or tampered envelope — indistinguishable by design.
+      // Do NOT retry with a different key; present a generic "decryption failed" error.
+      break;
+    case 'MALFORMED_ENVELOPE':
+    case 'TRUNCATED_CIPHERTEXT':
+      // Structural problem before any key material was used.
+      // Log and discard; the envelope cannot be salvaged.
+      break;
+    case 'UNSUPPORTED_ALGORITHM':
+    case 'UNSUPPORTED_VERSION':
+      // Envelope was produced by a newer library version.
+      // Upgrade the library or reject the envelope.
+      break;
+    case 'NONCE_BUDGET_EXCEEDED':
+      // AES-256-GCM per-key cap reached. Rotate the master key.
+      break;
+  }
+}
+```
+
+### Partitioning-oracle defence
+
+`AuthenticationFailedError` is the single error class for **all** authenticated failures: wrong CEK, wrong commit key, tampered ciphertext, tampered AAD, and tampered commitment. The message and code are intentionally identical for every case. Distinguishing them would allow a partitioning-oracle attack (Len–Grubbs–Ristenpart, USENIX 2021 §4.2): an adversary with decrypt-oracle access could binary-search a candidate key set by observing which failure mode occurred. Callers must treat all `AUTHENTICATION_FAILED` errors identically.
+
 ## Maintenance posture
 
 This is a small-organisation, primarily-internal project. Honest expectations:
