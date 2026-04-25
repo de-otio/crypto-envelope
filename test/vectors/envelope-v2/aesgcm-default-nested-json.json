@@ -1,0 +1,49 @@
+{
+  "description": "AES-256-GCM / kid=default / case=nested-json",
+  "inputs": {
+    "masterKeyHex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "kid": "default",
+    "algorithm": "AES-256-GCM",
+    "payload": {
+      "type": "document",
+      "version": 3,
+      "draft": false,
+      "rating": null,
+      "score": 4.75,
+      "tags": [
+        "alpha",
+        "beta",
+        "gamma"
+      ],
+      "meta": {
+        "author": "Alice",
+        "contributors": [
+          "Bob",
+          "Carol"
+        ],
+        "stats": {
+          "words": 1024,
+          "chars": 5120
+        }
+      }
+    },
+    "nonceHex": "02030000dededededededede",
+    "id": "aesgcm-default",
+    "ts": "2026-04-25T00:00:00.000Z"
+  },
+  "expected": {
+    "v1": {
+      "v": 1,
+      "id": "aesgcm-default",
+      "ts": "2026-04-25T00:00:00.000Z",
+      "enc": {
+        "alg": "AES-256-GCM",
+        "kid": "default",
+        "ct": "AgMAAN7e3t7e3t7eZohQhT2OxkwomHB8YKK59E3GAL3woofxJJxHXLw6NxKCWp/vl+TwXsIQlg1K1LFiMcHKBhwcTO7oc7gx0/V54/t5ZM+B6+m5ZvhVEyOHhEJJk+z1vv5B0OqjAcl4zU23nSvePzMonFbbZAjuOV4bQZIJ8nmVb6CF80BuSaeHD3DR3I7RNimMpDlzggu9rLsHbX9uywJ8RIYSkM33ncRvvZDDfrTObwt8tJrfRKd3eqD/1/xkJlytVXHRlUUtX8H+yhNuOCAKVEM7ripanWwuHc11DfMY",
+        "ct.len": 225,
+        "commit": "FHKxcUKqkaLclsU3Z/cBl+xNVQcvxZgMLiPy7/dMp5A="
+      }
+    },
+    "v2Hex": "434b42a46176026269646e61657367636d2d64656661756c746274737818323032362d30342d32355430303a30303a30302e3030305a63656e63a462637458e102030000dededededededede668850853d8ec64c2898707c60a2b9f44dc600bdf0a287f1249c475cbc3a3712825a9fef97e4f05ec210960d4ad4b16231c1ca061c1c4ceee873b831d3f579e3fb7964cf81ebe9b966f85513238784424993ecf5befe41d0eaa301c978cd4db79d2bde3f33289c56db6408ee395e1b419209f279956fa085f3406e49a7870f70d1dc8ed136298ca43973820bbdacbb076d7f6ecb027c44861290cdf79dc46fbd90c37eb4ce6f0b7cb49adf44a7777aa0ffd7fc64265cad5571d195452d5fc1feca136e38200a54433bae2a5a9d6c2e1dcd750df31863616c676b4145532d3235362d47434d636b69646764656661756c7466636f6d6d697458201472b17142aa91a2dc96c53767f70197ec4d55072fc5980c2e23f2eff74ca790"
+  }
+}

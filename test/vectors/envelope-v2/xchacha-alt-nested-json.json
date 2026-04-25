@@ -1,0 +1,49 @@
+{
+  "description": "XChaCha20-Poly1305 / kid=alt / case=nested-json",
+  "inputs": {
+    "masterKeyHex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "kid": "alt",
+    "algorithm": "XChaCha20-Poly1305",
+    "payload": {
+      "type": "document",
+      "version": 3,
+      "draft": false,
+      "rating": null,
+      "score": 4.75,
+      "tags": [
+        "alpha",
+        "beta",
+        "gamma"
+      ],
+      "meta": {
+        "author": "Alice",
+        "contributors": [
+          "Bob",
+          "Carol"
+        ],
+        "stats": {
+          "words": 1024,
+          "chars": 5120
+        }
+      }
+    },
+    "nonceHex": "01030000dededededededededededededededededededede",
+    "id": "xchacha-alt",
+    "ts": "2026-04-25T00:00:00.000Z"
+  },
+  "expected": {
+    "v1": {
+      "v": 1,
+      "id": "xchacha-alt",
+      "ts": "2026-04-25T00:00:00.000Z",
+      "enc": {
+        "alg": "XChaCha20-Poly1305",
+        "kid": "alt",
+        "ct": "AQMAAN7e3t7e3t7e3t7e3t7e3t7e3t7eS/b42IloPH3fZbxF43BOLc4ixQKTaoS9FS4LBLRv664gG0TtJ4LFGd6pfhlIvPm9oV5rhWLvfAKpdb5cjPTQj8jL1O2sbcplOgDlKah3IlNI7uE2DNg7zHih3D1xLy44aagQoTlT5IR3FH21IPjKl/sbX1HpjYpLHue3NJZkfIRWcL+PBhuH9FeHjkKXqXo4QsHoH4J51Dnh1RLjhEH7piU8D32RWeM+hwYyZR1pi846WWbuzjLvYlcn8h4HPRfM6hv/3BxB8nBb823tlA8Nn4OdFF9E",
+        "ct.len": 237,
+        "commit": "tX+ijjrnSJOgTvJIUEcgU2n0j6imRkQw+9so84D9UIo="
+      }
+    },
+    "v2Hex": "434b42a46176026269646b786368616368612d616c746274737818323032362d30342d32355430303a30303a30302e3030305a63656e63a462637458ed01030000dededededededededededededededededededede4bf6f8d889683c7ddf65bc45e3704e2dce22c502936a84bd152e0b04b46febae201b44ed2782c519dea97e1948bcf9bda15e6b8562ef7c02a975be5c8cf4d08fc8cbd4edac6dca653a00e529a877225348eee1360cd83bcc78a1dc3d712f2e3869a810a13953e48477147db520f8ca97fb1b5f51e98d8a4b1ee7b73496647c845670bf8f061b87f457878e4297a97a3842c1e81f8279d439e1d512e38441fba6253c0f7d9159e33e870632651d698bce3a5966eece32ef625727f21e073d17ccea1bffdc1c41f2705bf36ded940f0d9f839d145f4463616c67725843686143686132302d506f6c7931333035636b696463616c7466636f6d6d69745820b57fa28e3ae74893a04ef2485047205369f48fa8a6464430fbdb28f380fd508a"
+  }
+}

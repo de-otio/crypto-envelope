@@ -1,0 +1,27 @@
+{
+  "description": "XChaCha20-Poly1305 / kid=default / case=empty",
+  "inputs": {
+    "masterKeyHex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "kid": "default",
+    "algorithm": "XChaCha20-Poly1305",
+    "payload": {},
+    "nonceHex": "01000000dededededededededededededededededededede",
+    "id": "xchacha-default",
+    "ts": "2026-04-25T00:00:00.000Z"
+  },
+  "expected": {
+    "v1": {
+      "v": 1,
+      "id": "xchacha-default",
+      "ts": "2026-04-25T00:00:00.000Z",
+      "enc": {
+        "alg": "XChaCha20-Poly1305",
+        "kid": "default",
+        "ct": "AQAAAN7e3t7e3t7e3t7e3t7e3t7e3t7ewP4St1NOrFMZ0FlSdiowCcV4",
+        "ct.len": 42,
+        "commit": "3JV7G5ot5ITFz3YjulijUfAxh9rfcMIlpLdVGpMdjPk="
+      }
+    },
+    "v2Hex": "434b42a46176026269646f786368616368612d64656661756c746274737818323032362d30342d32355430303a30303a30302e3030305a63656e63a4626374582a01000000dedededededededededededededededededededec0fe12b7534eac5319d05952762a3009c57863616c67725843686143686132302d506f6c7931333035636b69646764656661756c7466636f6d6d69745820dc957b1b9a2de484c5cf7623ba58a351f03187dadf70c225a4b7551a931d8cf9"
+  }
+}

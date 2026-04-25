@@ -1,7 +1,15 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "files": {
-    "ignore": ["dist", "dist-cjs", "coverage", "node_modules", ".doc-search-index"]
+    "ignore": [
+      "dist",
+      "dist-cjs",
+      "coverage",
+      "node_modules",
+      ".doc-search-index",
+      "tmp",
+      "test/vectors"
+    ]
   },
   "formatter": {
     "enabled": true,

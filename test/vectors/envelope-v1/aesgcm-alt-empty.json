@@ -1,0 +1,27 @@
+{
+  "description": "AES-256-GCM / kid=alt / case=empty",
+  "inputs": {
+    "masterKeyHex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "kid": "alt",
+    "algorithm": "AES-256-GCM",
+    "payload": {},
+    "nonceHex": "02000000dededededededede",
+    "id": "aesgcm-alt",
+    "ts": "2026-04-25T00:00:00.000Z"
+  },
+  "expected": {
+    "v1": {
+      "v": 1,
+      "id": "aesgcm-alt",
+      "ts": "2026-04-25T00:00:00.000Z",
+      "enc": {
+        "alg": "AES-256-GCM",
+        "kid": "alt",
+        "ct": "AgAAAN7e3t7e3t7epKTmLM910ZVi6EPi4XZ6zc2t",
+        "ct.len": 30,
+        "commit": "k3fDmmwdhaPqSo+JEqNJbzual4Qb0fcVYKSmDE0gmX8="
+      }
+    },
+    "v2Hex": "434b42a46176026269646a61657367636d2d616c746274737818323032362d30342d32355430303a30303a30302e3030305a63656e63a4626374581e02000000dedededededededea4a4e62ccf75d19562e843e2e1767acdcdad63616c676b4145532d3235362d47434d636b696463616c7466636f6d6d697458209377c39a6c1d85a3ea4a8f8912a3496f3b9a97841bd1f71560a4a60c4d20997f"
+  }
+}

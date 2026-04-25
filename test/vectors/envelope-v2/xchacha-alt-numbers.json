@@ -1,0 +1,34 @@
+{
+  "description": "XChaCha20-Poly1305 / kid=alt / case=numbers",
+  "inputs": {
+    "masterKeyHex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "kid": "alt",
+    "algorithm": "XChaCha20-Poly1305",
+    "payload": {
+      "integer": 42,
+      "negative": -7,
+      "float": 3.141592653589793,
+      "zero": 0,
+      "large": 9007199254740991,
+      "small": 1.4e-10
+    },
+    "nonceHex": "01050000dededededededededededededededededededede",
+    "id": "xchacha-alt",
+    "ts": "2026-04-25T00:00:00.000Z"
+  },
+  "expected": {
+    "v1": {
+      "v": 1,
+      "id": "xchacha-alt",
+      "ts": "2026-04-25T00:00:00.000Z",
+      "enc": {
+        "alg": "XChaCha20-Poly1305",
+        "kid": "alt",
+        "ct": "AQUAAN7e3t7e3t7e3t7e3t7e3t7e3t7elup6JSk07DaLqqupkbQREbCxrakzgE6DHtiirc734GoAk1Lp9887hIuBg8uKUnBoyaCI1Vj3jUXTJaea4ZQB1wnSrmUyosAqX/BQL8cvzmHgfOyV+x2aJ3xKt9m7qEu8uw/COaXLjvCvJJP5lc7LAA6Ojz14nl8r",
+        "ct.len": 144,
+        "commit": "xu9F8F6drx8tesmZYOUIBo9P6ek9cwoRTnPl8UWSvJs="
+      }
+    },
+    "v2Hex": "434b42a46176026269646b786368616368612d616c746274737818323032362d30342d32355430303a30303a30302e3030305a63656e63a4626374589001050000dededededededededededededededededededede96ea7a252934ec368baaaba991b41111b0b1ada933804e831ed8a2adcef7e06a009352e9f7cf3b848b8183cb8a527068c9a088d558f78d45d325a79ae19401d709d2ae6532a2c02a5ff0502fc72fce61e07cec95fb1d9a277c4ab7d9bba84bbcbb0fc239a5cb8ef0af2493f995cecb000e8e8f3d789e5f2b63616c67725843686143686132302d506f6c7931333035636b696463616c7466636f6d6d69745820c6ef45f05e9daf1f2d7ac99960e508068f4fe9e93d730a114e73e5f14592bc9b"
+  }
+}

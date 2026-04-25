@@ -1,0 +1,14 @@
+{
+  "description": "Pinned output of the crypto-envelope deriveKey wrapper for a fixed (ikm, info, salt, len). Guards against future wrapper changes such as swapping the info encoder, default salt, or default length.",
+  "reference": "internal — test/hkdf.test.ts pinned-output section",
+  "algorithm": "HKDF-SHA256 via deriveKey wrapper",
+  "inputs": {
+    "ikmHex": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+    "saltHex": "42424242424242424242424242424242",
+    "info": "envelope-test/v1",
+    "length": 32
+  },
+  "expected": {
+    "okmHex": "07df1037781ff1c2ca474605eb418aed7f855163c74e1a15451c0f7ad0235237"
+  }
+}
