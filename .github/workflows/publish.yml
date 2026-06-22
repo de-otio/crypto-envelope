@@ -10,6 +10,11 @@ on:
         required: true
         type: string
 
+# Publish pipeline: never cancel an in-flight publish (npm side effects).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   id-token: write # required for npm provenance + OIDC Trusted Publishing
@@ -20,6 +25,7 @@ env:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
         with:

@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: '23 6 * * 1' # Monday 06:23 UTC
 
+# Cancel superseded runs on a branch; only auto-cancel on PR pushes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   actions: read
   contents: read
@@ -20,6 +25,7 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
