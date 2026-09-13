@@ -15,3 +15,6 @@ yarn-debug.log*
 yarn-error.log*
 # doc-search index
 .doc-search-index
+
+# Per-machine agent settings (never committed)
+.claude/settings.local.json
