@@ -1,10 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  PBKDF2_SHA256_MIN_ITERATIONS,
   _resetPbkdf2WarnForTests,
   asMasterKey,
   deriveMasterKeyFromPassphrase,
+  PBKDF2_SHA256_MIN_ITERATIONS,
 } from '../src/passphrase.js';
 import { SecureBuffer } from '../src/secure-buffer.js';
 

@@ -7,20 +7,18 @@
  * {@link upgradeToV2} / {@link downgradeToV1}.
  */
 
+export { rewrapEnvelope } from './rewrap.js';
 export {
-  encryptV1,
   decryptV1,
-  serializeV1,
   deserializeV1,
   type EncryptV1Args,
+  encryptV1,
+  serializeV1,
 } from './v1.js';
-
 export {
-  serializeV2,
-  deserializeV2,
   deserialize,
-  upgradeToV2,
+  deserializeV2,
   downgradeToV1,
+  serializeV2,
+  upgradeToV2,
 } from './v2.js';
-
-export { rewrapEnvelope } from './rewrap.js';

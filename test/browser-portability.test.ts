@@ -37,14 +37,14 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { EnvelopeClient } from '../src/envelope-client.js';
 import { decryptV1, encryptV1 } from '../src/envelope/v1.js';
 import { deserializeV2, downgradeToV1, serializeV2, upgradeToV2 } from '../src/envelope/v2.js';
+import { EnvelopeClient } from '../src/envelope-client.js';
 import { b64decode, b64encode } from '../src/internal/base64.js';
 import {
-  PBKDF2_SHA256_MIN_ITERATIONS,
   _resetPbkdf2WarnForTests,
   deriveMasterKeyFromPassphrase,
+  PBKDF2_SHA256_MIN_ITERATIONS,
 } from '../src/passphrase.js';
 import { deriveFromPassphrase as argon2DeriveFromPassphrase } from '../src/primitives/argon2.js';
 import { deriveCommitKey, deriveContentKey } from '../src/primitives/hkdf.js';

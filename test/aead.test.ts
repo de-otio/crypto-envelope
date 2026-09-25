@@ -2,12 +2,12 @@ import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   AES_GCM_NONCE_LENGTH,
-  KEY_LENGTH,
-  TAG_LENGTH,
-  XCHACHA_NONCE_LENGTH,
   aeadDecrypt,
   aeadEncrypt,
+  KEY_LENGTH,
   nonceLengthFor,
+  TAG_LENGTH,
+  XCHACHA_NONCE_LENGTH,
 } from '../src/primitives/aead.js';
 import type { Algorithm } from '../src/types.js';
 

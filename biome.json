@@ -1,14 +1,15 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.13/schema.json",
   "files": {
-    "ignore": [
-      "dist",
-      "dist-cjs",
-      "coverage",
-      "node_modules",
-      ".doc-search-index",
-      "tmp",
-      "test/vectors"
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/dist-cjs",
+      "!**/coverage",
+      "!**/node_modules",
+      "!**/.doc-search-index",
+      "!**/tmp",
+      "!**/test/vectors"
     ]
   },
   "formatter": {
