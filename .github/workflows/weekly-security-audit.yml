@@ -13,9 +13,22 @@
 
 name: "🛡️ Weekly Deep Security Audit"
 
+# SCHEDULE DISABLED 2026-08-01 — Bedrock cost during the Scaleway migration.
+#
+# This job runs `claude --max-turns 15` against a Bedrock inference profile in
+# the dot-ai account. De Otio is leaving AWS, and that account's spend was the
+# largest single line in the org, so the recurring Bedrock consumers are being
+# switched off rather than migrated.
+#
+# The audit is not broken and nothing here is deprecated. To restore, uncomment
+# the schedule; to keep it without AWS, point `claude --model` at an Anthropic
+# API model id instead of the Bedrock inference-profile ARN and drop the
+# configure-aws-credentials step.
+#
+# `workflow_dispatch` stays enabled, so an audit can still be run on demand.
 on:
-  schedule:
-    - cron: "0 7 * * 1"  # Every Monday at 07:00 UTC (09:00 Berlin)
+  # schedule:
+  #   - cron: "0 7 * * 1"  # Every Monday at 07:00 UTC (09:00 Berlin)
   workflow_dispatch:       # Manual trigger anytime
 
 permissions:

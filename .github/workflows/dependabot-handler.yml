@@ -13,6 +13,11 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened]
 
+# Cancel superseded runs on Dependabot rebases (pull_request_target only).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
+
 permissions:
   contents: write
   pull-requests: write

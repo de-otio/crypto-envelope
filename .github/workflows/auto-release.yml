@@ -23,6 +23,11 @@ on:
 permissions:
   contents: write
 
+# Release pipeline: never cancel an in-flight release (publish side effects).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     if: github.actor == 'dependabot[bot]'
