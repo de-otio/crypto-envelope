@@ -4,50 +4,51 @@
  * Opinionated authenticated-encryption envelopes for TypeScript.
  */
 
-export {
-  EnvelopeError,
-  AuthenticationFailedError,
-  UnsupportedAlgorithmError,
-  UnsupportedVersionError,
-  MalformedEnvelopeError,
-  TruncatedCiphertextError,
-} from './errors.js';
-export { canonicalJson } from './canonical-json.js';
-export { generateBlobId } from './blob-id.js';
-export { SecureBuffer } from './secure-buffer.js';
 export { constructAAD } from './aad.js';
+export { generateBlobId } from './blob-id.js';
+export { canonicalJson } from './canonical-json.js';
+export {
+  decryptV1,
+  deserialize,
+  deserializeV1,
+  deserializeV2,
+  downgradeToV1,
+  type EncryptV1Args,
+  encryptV1,
+  rewrapEnvelope,
+  serializeV1,
+  serializeV2,
+  upgradeToV2,
+} from './envelope/index.js';
 export {
   AES_GCM_HARD_CAP,
   EnvelopeClient,
-  NonceBudgetExceeded,
   type EnvelopeClientOptions,
+  NonceBudgetExceeded,
   type WireFormat,
 } from './envelope-client.js';
+export {
+  AuthenticationFailedError,
+  EnvelopeError,
+  MalformedEnvelopeError,
+  TruncatedCiphertextError,
+  UnsupportedAlgorithmError,
+  UnsupportedVersionError,
+} from './errors.js';
 export {
   InMemoryMessageCounter,
   keyFingerprint,
   type MessageCounter,
 } from './message-counter.js';
 export {
-  encryptV1,
-  decryptV1,
-  serializeV1,
-  deserializeV1,
-  serializeV2,
-  deserializeV2,
-  deserialize,
-  upgradeToV2,
-  downgradeToV1,
-  rewrapEnvelope,
-  type EncryptV1Args,
-} from './envelope/index.js';
-export {
   asMasterKey,
-  deriveMasterKeyFromPassphrase,
-  PBKDF2_SHA256_MIN_ITERATIONS,
   type DeriveMasterKeyOptions,
+  deriveMasterKeyFromPassphrase,
   type PassphraseKdfParams,
+  PBKDF2_SHA256_MIN_ITERATIONS,
 } from './passphrase.js';
+export { deriveCommitKey, deriveContentKey } from './primitives/hkdf.js';
+export { SecureBuffer } from './secure-buffer.js';
 export type {
   Algorithm,
   AnyEnvelope,
@@ -56,4 +57,3 @@ export type {
   ISecureBuffer,
   MasterKey,
 } from './types.js';
-export { deriveContentKey, deriveCommitKey } from './primitives/hkdf.js';

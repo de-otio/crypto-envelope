@@ -1,6 +1,6 @@
 import { AES_GCM_HARD_CAP, NonceBudgetExceeded } from '../envelope-client.js';
 import { MalformedEnvelopeError } from '../errors.js';
-import { type MessageCounter, keyFingerprint } from '../message-counter.js';
+import { keyFingerprint, type MessageCounter } from '../message-counter.js';
 import { deriveCommitKey, deriveContentKey } from '../primitives/hkdf.js';
 import type { AnyEnvelope, MasterKey } from '../types.js';
 import { decryptV1, encryptV1 } from './v1.js';

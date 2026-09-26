@@ -8,7 +8,7 @@ import {
   upgradeToV2,
 } from './envelope/index.js';
 import { EnvelopeError } from './errors.js';
-import { InMemoryMessageCounter, type MessageCounter, keyFingerprint } from './message-counter.js';
+import { InMemoryMessageCounter, keyFingerprint, type MessageCounter } from './message-counter.js';
 import { deriveCommitKey, deriveContentKey } from './primitives/hkdf.js';
 import { SecureBuffer } from './secure-buffer.js';
 import type { Algorithm, EnvelopeV1, ISecureBuffer, MasterKey } from './types.js';

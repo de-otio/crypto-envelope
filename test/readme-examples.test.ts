@@ -5,11 +5,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  EnvelopeClient,
   decryptV1,
   deriveCommitKey,
   deriveContentKey,
   deriveMasterKeyFromPassphrase,
+  EnvelopeClient,
   encryptV1,
 } from '../src/index.js';
 

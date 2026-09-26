@@ -10,7 +10,7 @@ import {
 } from '../errors.js';
 import { b64decode, b64encode } from '../internal/base64.js';
 import { constantTimeEqual } from '../internal/constant-time.js';
-import { TAG_LENGTH, aeadDecrypt, aeadEncrypt, nonceLengthFor } from '../primitives/aead.js';
+import { aeadDecrypt, aeadEncrypt, nonceLengthFor, TAG_LENGTH } from '../primitives/aead.js';
 import { computeCommitment, verifyCommitment } from '../primitives/commitment.js';
 import type { Algorithm, EnvelopeV1 } from '../types.js';
 
