@@ -1,10 +1,10 @@
 # =============================================================================
-# Dependabot review + auto-merge
+# Dependabot auto-merge
 # =============================================================================
-# Calls the org-shared workflow that runs Claude against each Dependabot PR
-# to check for supply-chain attack signals, then enables auto-merge if
-# approved. See https://github.com/de-otio/.github for the implementation
-# and threat model.
+# Calls the org-shared workflow, which enables auto-merge for semver-minor and
+# semver-patch Dependabot bumps once the required checks pass. Majors wait for
+# a human. See https://github.com/de-otio/.github for the implementation and
+# threat model.
 # =============================================================================
 
 name: Dependabot review
@@ -13,15 +13,16 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened]
 
-# Cancel superseded runs on Dependabot rebases (pull_request_target only).
+# Cancel superseded runs when Dependabot rebases a PR. Keyed on the PR number:
+# under pull_request_target, github.ref is the BASE branch, so a ref-keyed group
+# puts every Dependabot PR in one group and each run cancels the others.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
   pull-requests: write
-  id-token: write
 
 jobs:
   review:
