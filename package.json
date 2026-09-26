@@ -98,6 +98,6 @@
     "@vitest/coverage-v8": "^4.1.4",
     "esbuild": "^0.28.0",
     "typescript": "~6.0.0",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.11"
   }
 }
