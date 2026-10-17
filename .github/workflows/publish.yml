@@ -34,7 +34,7 @@ jobs:
       # Node 22 ships npm 10 which fails with a misleading "404 Not Found"
       # on PUT immediately after provenance is signed.
       # Ref: https://medium.com/@kenricktan11/npm-trusted-publishers-the-weird-404-error-and-the-node-js-24-fix-a9f1d717a5dd
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
